@@ -239,13 +239,13 @@ npm run sanity:deploy
 
 These commands streamline development with GitHub-based context tracking:
 
-- **`=fcs > [topic-name]`**: Creates new GitHub issue `[XXXX] [topic-name]` for context tracking
-- **`=fcs > [XXXX]`**: Updates existing context issue by number  
-- **`=fcs list`**: Shows all active context issues
-- **`=fcs recent`**: Shows recent context issues
-- **`=plan > [question/problem]`**: Creates/Updates GitHub Task Issue with detailed action plan
-- **`=impl > [message]`**: Iterative implementation workflow (creates feature branch, executes from GitHub issue)
-- **`=pr > [feedback]`**: Pull request and integration workflow
+- **`=fcs > [topic-name]`**: Creates new GitHub Context Issue `[ISSUE-XXX] [topic-name]` for context tracking
+- **`=fcs > [ISSUE-XXX]`**: Updates existing Context Issue by number
+- **`=fcs list`**: Shows all active Context Issues (`[ISSUE-*]`)
+- **`=fcs recent`**: Shows recent Context Issues
+- **`=plan > [question/problem]`**: Creates/Updates GitHub Task Issue `[TASK-XXX-X]` linked to Context Issue
+- **`=impl > [message]`**: Iterative implementation workflow (creates feature branch, executes from Task Issue) - **See detailed workflow below**
+- **`=pr > [feedback]`**: Pull request creation and integration workflow (creates PR from pushed feature branch)
 - **`=stage > [message]`**: Staging deployment workflow
 - **`=prod > [message]`**: Production deployment workflow
 - **`=rrr > [message]`**: Creates daily retrospective file and GitHub Issue
@@ -253,10 +253,12 @@ These commands streamline development with GitHub-based context tracking:
 ### GitHub Context Tracking Features
 
 - **Pure GitHub Storage**: No local context files needed
-- **Issue Naming**: `[XXXX] [topic-name]` format for easy identification
+- **Context Issue Naming**: `[ISSUE-XXX] [topic-name]` format for Context Issues (e.g., `[ISSUE-007] User Authentication`)
+- **Task Issue Naming**: `[TASK-XXX-X] [task-description]` format linked to Context (e.g., `[TASK-007-1] Implement login form`)
+- **Sequential Numbering**: Auto-incrementing numbering for easy tracking and relationships
 - **Stateless**: Works from any machine with GitHub access
 - **Collaborative**: Team members can view and contribute to context
-- **Searchable**: Full GitHub search capabilities for context history
+- **Searchable**: Full GitHub search capabilities (`[ISSUE-*]` for contexts, `[TASK-*]` for tasks)
 
 ### Workflow Features
 
@@ -265,11 +267,110 @@ These commands streamline development with GitHub-based context tracking:
 - **Iteration Tracking**: Progress tracking with TodoWrite integration
 - **Staging-First Deployment**: All features go through staging before production
 
+### =impl Implementation Workflow (MANDATORY)
+
+**🚨 CRITICAL**: This is the ONLY approved workflow for all implementation work.
+
+#### Pre-Implementation Checklist (MANDATORY)
+
+1. **Staging Branch Sync Validation**:
+   ```bash
+   git checkout staging
+   git pull origin staging
+   # Verify local staging is up-to-date with remote
+   ```
+
+2. **Task Issue Verification**:
+   - Confirm Task Issue exists: `[TASK-XXX-X] [task-description]`
+   - Verify Task Issue is linked to Context Issue: `[ISSUE-XXX]`
+   - Task Issue must be created/updated via `=plan` command first
+
+3. **Local Environment Check**:
+   - Verify working directory is clean: `git status`
+   - No uncommitted changes allowed before branching
+
+#### Implementation Steps (STRICT ORDER)
+
+**Step 1: Create Feature Branch (MANDATORY)**
+```bash
+# Branch naming format: feature/task-[task-number]-[description]
+git checkout -b feature/task-[task-number]-[description]
+# Example: git checkout -b feature/task-007-1-user-login
+```
+
+**Step 2: Execute Implementation**
+- Read Task Issue requirements from GitHub
+- Implement according to plan
+- Use TodoWrite for progress tracking on complex tasks
+- Run builds during implementation: `npm run build`
+
+**Step 3: Build & Quality Validation (MANDATORY - 100% PASS REQUIRED)**
+```bash
+# Run build - MUST PASS 100%
+npm run build
+
+# Run linter - MUST PASS 100% (NO errors allowed)
+npm run lint
+
+# Type checking validation (additional safety check)
+npx tsc --noEmit
+
+# ONLY proceed if ALL validations pass
+# If ANY validation fails - fix issues before proceeding
+```
+
+**Step 4: Commit Changes (MANDATORY FORMAT)**
+```bash
+git add .
+git commit -m "feat: implement [feature description]
+
+- Address TASK-XXX-X: [task title]
+- Implement core functionality
+- Build validation: 100% PASS
+- Linter validation: 100% PASS
+- Add tests where applicable
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+**Step 5: Push Feature Branch (MANDATORY)**
+```bash
+git push -u origin feature/task-[task-number]-[description]
+# Implementation complete - ready for PR creation via =pr command
+```
+
+#### End of Implementation
+
+- Implementation is now complete with commit pushed to remote feature branch
+- **Next step**: Use `=pr` command to create Pull Request
+- `=pr` will handle PR creation with proper linking to Context and Task issues
+- **Do NOT** manually create PRs - always use `=pr` command for consistency
+
+#### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
+
+- ❌ **NEVER** work directly on `main` or `staging` branches
+- ❌ **NEVER** create feature branches without `TASK-XXX-X` reference
+- ❌ **NEVER** create PRs targeting `main` branch
+- ❌ **NEVER** use generic branch names like `feature/new-feature`
+- ❌ **NEVER** skip staging branch sync
+- ❌ **NEVER** implement without Task Issue created via `=plan`
+- ❌ **NEVER** commit code with build errors or linter violations (100% PASS REQUIRED)
+- ❌ **NEVER** proceed to commit if ANY validation fails (build, lint, type-check)
+- ❌ **NEVER** manually create Pull Requests - always use `=pr` command instead
+
+#### Emergency Recovery
+
+If implementation fails or requires restart:
+1. `git checkout staging`
+2. `git branch -D feature/task-[task-number]-[description]`
+3. Start workflow from Step 1
+
 ### Git Workflow
 
 - **Main Branch**: Production-ready code
 - **Staging Branch**: Pre-production validation
-- **Feature Branches**: `feature/[issue-number]-[description]` for new features
+- **Feature Branches**: `feature/task-[task-number]-[description]` for new features (e.g., `feature/task-007-1-user-login`)
 - **Development**: Work on feature branches, create PRs to staging → main
 
 ### Code Quality
