@@ -43,10 +43,13 @@
 
 ระบบจะถูกพัฒนาเป็น **Web Application (HTML/JS/CSS)** ที่ทำงานบน **LINE LIFF (LINE Front-end Framework)**
 
-#### 2.1 F1: การลงทะเบียนสมาชิกตลาดนัดอัตโนมัติ (Premium Member Onboarding)
-| User Story (ในฐานะลูกค้า...) | Acceptance Criteria (สิ่งที่ต้องเป็นไปตามนี้) |
+#### 2.1 F1: การลงทะเบียนสมาชิกและการเข้าถึงระบบแบบหลายช่องทาง (Multi-Channel Member Onboarding & Access)
+| User Story (ในฐานะผู้ใช้งาน...) | Acceptance Criteria (สิ่งที่ต้องเป็นไปตามนี้) |
 | :--- | :--- |
 | **"ฉันเป็นลูกค้าที่ตลาดนัด อยากสแกน QR Code แล้วเป็นสมาชิกพิเศษทันทีเพื่อใช้เครื่องคำนวนราคาต้นไม้"** | 1. ลูกค้าสแกน QR Code ที่ร้าน → กด "เพิ่มเพื่อน" LINE OA → ระบบเปิด LIFF App อัตโนมัติ 2. LIFF App เรียก `liff.getProfile()` และดึง **LINE User ID (UID)**, **Display Name**, **Profile Picture** มาได้ 3. ระบบบันทึกข้อมูลสมาชิกอัตโนมัติ (Zero-Click Registration) 4. เข้าสู่หน้า Profile หลักสำหรับสมาชิกพิเศษทันที |
+| **"ฉันเป็นสมาชิก LINE OA แล้ว อยากเข้าใช้เครื่องคำนวนราคาผ่านเมนูด้านล่างแอป LINE"** | 1. ผู้ใช้กดปุ่ม **Rich Menu** "💰 คำนวนราคา" ด้านล่างแอป LINE 2. LINE เปิด LIFF App โดยตรงด้วย URL: `https://liff.line.app/{LIFF_ID}?path=calculator` 3. ระบบตรวจสอบ LINE User ID → หากเป็นสมาชิกแล้วให้เข้าถึงได้ทันที 4. หากยังไม่เป็นสมาชิก → ทำ Zero-Click Registration แล้วเข้า Calculator |
+| **"ฉันอยากเข้าใช้งานโดยพิมพ์คำสั่งในแชทกับ LINE OA"** | 1. ผู้ใช้พิมพ์คำสั่งเช่น **"คำนวนราคา"**, **"เครื่องมือ"**, **"ราคาต้นไม้"** ในแชท LINE OA 2. LINE OA ตอบกลับด้วย **LIFF URL Button** พร้อมข้อความ "กดเพื่อเปิดเครื่องคำนวนราคาต้นไม้" 3. ผู้ใช้กดปุ่ม → เปิด LIFF App โดยตรง → Authentication Flow เหมือน QR Code |
+| **"ฉันอยากดูโปรไฟล์สมาชิกของฉันผ่านหน้าโปรไฟล์ LINE OA"** | 1. ผู้ใช้เข้าหน้าโปรไฟล์ LINE OA 2. กดปุ่ม **"ดูโปรไฟล์สมาชิก"** หรือ **"เครื่องมือพิเศษ"** 3. LINE OA เปิด LIFF App ด้วย URL: `https://liff.line.app/{LIFF_ID}?path=profile` 4. เข้าสู่หน้า Profile หลักของสมาชิกพิเศษทันที |
 
 #### 2.2 F2: หน้า Profile หลักของสมาชิกพิเศษ (Premium Member Portal)
 | User Story (ในฐานะลูกค้า...) | Acceptance Criteria |
@@ -98,9 +101,13 @@
 | ตัวชี้วัด (Metric) | เกณฑ์ความสำเร็จของ MVP (Target) |
 | :--- | :--- |
 | **LINE OA Member Growth Rate** | **$\ge 70\%$** ของลูกค้าที่เข้ามาที่ร้านในตลาดนัด สแกน QR Code และกลายเป็นสมาชิก LINE OA |
+| **Rich Menu Engagement Rate** | **$\ge 60\%$** ของสมาชิกที่เข้าถึง LIFF ผ่าน Rich Menu (vs. QR Code) |
+| **Multi-Channel Access Distribution** | **$\ge 40\%$** ของการใช้งาน LIFF มาจากช่องทางอื่นนอกจาก QR Code (Rich Menu, Chat, OA Profile) |
 | **Premium Calculator Usage Rate** | **$\ge 80\%$** ของสมาชิกใหม่ ต้องมีการใช้เครื่องคำนวนราคาต้นไม้อย่างน้อย 1 ครั้ง |
 | **Lead Generation Value** | **$\ge 50\%$** ของการคำนวนมีมูลค่าการสนใจซื้อขาย **$100-500$ บาท** (ขึ้นอยู่กับจำนวนและชนิดต้นไม้ที่เลือก) |
 | **Market Intelligence Access** | **$\ge 30\%$** ของสมาชิกตรวจสอบราคาต้นทุเรียนตลาด (Reference Plants) เพื่อเปรียบเทียบกับร้าน |
+| **Chat Command Success Rate** | **$\ge 85\%$** ของคำสั่งในแชทที่ตอบกลับด้วย LIFF URL ถูกต้องและใช้งานได้ |
+| **Repeat Usage Rate (Multi-Channel)** | **$\ge 40\%$** ของสมาชิกกลับมาใช้ LIFF อีกผ่าน Rich Menu หรือ Chat Commands ภายใน 7 วัน |
 
 ---
 
@@ -206,6 +213,11 @@
 NEXT_PUBLIC_LIFF_ID=1234567890-AbcdEfgh
 LINE_CHANNEL_ACCESS_TOKEN=your_channel_access_token
 
+# LINE OA Rich Menu Configuration
+NEXT_PUBLIC_LIFF_BASE_URL=https://liff.line.app
+RICH_MENU_ID=1234567890
+LINE_OA_BASIC_ID=@your-line-oa
+
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -214,6 +226,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 # Application Configuration
 NEXT_PUBLIC_APP_URL=https://your-app-domain.com
 NODE_ENV=production
+
+# LIFF URL Routes (สำหรับ Multi-Channel Access)
+NEXT_PUBLIC_LIFF_PROFILE_URL=${NEXT_PUBLIC_LIFF_BASE_URL}/${NEXT_PUBLIC_LIFF_ID}?path=profile
+NEXT_PUBLIC_LIFF_CALCULATOR_URL=${NEXT_PUBLIC_LIFF_BASE_URL}/${NEXT_PUBLIC_LIFF_ID}?path=calculator
+NEXT_PUBLIC_LIFF_CONTACT_URL=${NEXT_PUBLIC_LIFF_BASE_URL}/${NEXT_PUBLIC_LIFF_ID}?path=contact
 ```
 
 **LINE LIFF SDK Integration Flow**:
@@ -336,7 +353,9 @@ Chart Colors: 5-level green spectrum สำหรับ data visualization
 
 ## 7. ภาพรวม Flow การใช้งาน (User Journey Summary)
 
-### Flow หลักสำหรับลูกค้าตลาดนัด (อัพเดตด้วย LIFF SDK):
+### Flow หลักสำหรับการเข้าถึงระบบแบบ Multi-Channel:
+
+#### **Flow A: QR Code → LINE OA → LIFF (สำหรับลูกค้าใหม่)**
 ```
 1. Scan QR Code ที่ร้าน
    ↓
@@ -353,7 +372,7 @@ Chart Colors: 5-level green spectrum สำหรับ data visualization
    ↓
 6. Database Registration:
    - เรียก /api/auth/register สร้าง/อัพเดต member ใน Supabase
-   - เก็บ LINE User ID เป็น Primary Key
+   - เก็บ LINE User ID เป็น Primary Key (role='member' ตาม default)
    ↓
 7. เข้าหน้า Profile หลัก (คล้ายแอปธนาคาร)
    ↓
@@ -363,10 +382,49 @@ Chart Colors: 5-level green spectrum สำหรับ data visualization
    - เลือกต้นทุเรียน (พันธุ์ + ขนาด + ทรงพุ่ม)
    - เพิ่มเข้าตะกร้า
    - คำนวณราคา + โปรโมชั่น (Real-time)
+```
+
+#### **Flow B: Rich Menu → LIFF (สำหรับสมาชิกเก่า)**
+```
+1. เปิดแอป LINE
    ↓
-10. ส่งผลการคำนวน:
-    - เรียก /api/quotes/calculate บันทึกข้อมูล
-    - เรียก /api/line/send-staff ส่งข้อมูลให้พนักงานทาง LINE
+2. กดปุ่ม Rich Menu "💰 คำนวนราคา"
+   ↓
+3. LINE เปิด LIFF App: https://liff.line.app/{LIFF_ID}?path=calculator
+   ↓
+4. LIFF SDK Initialization + URL Parameter Detection
+   ↓
+5. Authentication Check:
+   - หากเป็นสมาชิกแล้ว → เข้า Calculator ทันที
+   - หากยังไม่เป็นสมาชิก → Auto Registration → Calculator
+   ↓
+6. Real-time Calculator (ทำงานเหมือน Flow A ข้อ 9)
+```
+
+#### **Flow C: Chat Commands → LIFF URL Button**
+```
+1. ผู้ใช้พิมพ์: "คำนวนราคา", "ราคาต้นไม้", "เครื่องมือ"
+   ↓
+2. LINE OA ตอบกลับพร้อม LIFF URL Button
+   ↓
+3. ผู้ใช้กดปุ่ม → เปิด LIFF App
+   ↓
+4. Authentication Flow (เหมือน Flow B ข้อ 4-5)
+   ↓
+5. เข้า Calculator หรือ Profile ตาม URL path
+```
+
+#### **Flow D: OA Profile → LIFF Buttons**
+```
+1. ผู้ใช้เข้าหน้าโปรไฟล์ LINE OA
+   ↓
+2. กดปุ่ม "ดูโปรไฟล์สมาชิก" หรือ "เครื่องมือพิเศษ"
+   ↓
+3. LINE เปิด LIFF App: https://liff.line.app/{LIFF_ID}?path=profile
+   ↓
+4. Authentication Flow (เหมือน Flow B ข้อ 4-5)
+   ↓
+5. เข้าหน้า Profile หลักของสมาชิกพิเศษทันที
 ```
 
 ### Flow สำหรับเจ้าของร้าน (Admin Panel):
@@ -391,14 +449,74 @@ Chart Colors: 5-level green spectrum สำหรับ data visualization
 ```
 
 ### Technical Flow Summary:
-- **Frontend**: Next.js + React + LINE LIFF SDK (Members-only access)
+- **Frontend**: Next.js + React + LINE LIFF SDK (Multi-Channel Access + Members-only)
 - **UI/UX**: shadcn/ui + Custom Nature Theme (OKLCH color space)
-- **Authentication**: LINE LIFF (Zero-Click Registration + Authentication Guard)
+- **Authentication**: LINE LIFF (Zero-Click Registration + Authentication Guard + URL Routing)
+- **Multi-Channel Integration**: Rich Menu, Chat Commands, OA Profile, QR Code
 - **Database**: Supabase PostgreSQL + Supabase Client SDK (No order persistence)
 - **API**: Next.js API Routes (Calculator & Admin only)
 - **Storage**: Supabase Storage (รูปภาพต้นทุเรียน)
 - **Deployment**: Production ready with SSL certificate
 - **Cost Optimization**: No LINE Messaging API costs (Calculator-only approach)
+
+### LIFF URL Routing Architecture:
+
+**URL Parameter Structure:**
+```javascript
+// รูปแบบ LIFF URL ที่รองรับทุกช่องทาง
+https://liff.line.app/{LIFF_ID}?path=profile     // หน้าโปรไฟล์สมาชิก
+https://liff.line.app/{LIFF_ID}?path=calculator   // เครื่องคำนวนราคา
+https://liff.line.app/{LIFF_ID}?path=contact     // ติดต่อร้าน
+https://liff.line.app/{LIFF_ID}                  // Default → Profile
+```
+
+**Component Routing Logic:**
+```javascript
+// LIFF App Initialization Flow
+1. liff.init({ liffId: process.env.NEXT_PUBLIC_LIFF_ID })
+2. ดึง URL Parameters: const path = new URLSearchParams(liff.getContext().viewport?.uri).get('path')
+3. Authentication Check: liff.isLoggedIn() + Database member validation
+4. Route ไปยัง Component ตาม path:
+   - 'profile' → <ProfilePage />
+   - 'calculator' → <CalculatorPage />
+   - 'contact' → <ContactPage />
+   - default → <ProfilePage />
+```
+
+**Rich Menu Configuration:**
+```json
+{
+  "richMenuId": "1234567890",
+  "size": {
+    "width": 2500,
+    "height": 1686
+  },
+  "selected": false,
+  "areas": [
+    {
+      "bounds": {"x": 0, "y": 0, "width": 833, "height": 843},
+      "action": {
+        "type": "uri",
+        "uri": "https://liff.line.app/{LIFF_ID}?path=profile"
+      }
+    },
+    {
+      "bounds": {"x": 834, "y": 0, "width": 833, "height": 843},
+      "action": {
+        "type": "uri",
+        "uri": "https://liff.line.app/{LIFF_ID}?path=calculator"
+      }
+    },
+    {
+      "bounds": {"x": 1668, "y": 0, "width": 832, "height": 843},
+      "action": {
+        "type": "uri",
+        "uri": "https://liff.line.app/{LIFF_ID}?path=contact"
+      }
+    }
+  ]
+}
+```
 
 **Design Implementation**:
 - **Component Library**: shadcn/ui สำหรับ consistency และ accessibility
