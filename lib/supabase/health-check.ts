@@ -4,11 +4,10 @@ export async function checkDatabaseHealth() {
   try {
     const supabase = await createClient()
 
-    // Simple health check - test connection
+    // Simple health check - test connection using our products table
     const { data, error } = await supabase
-      .from('pg_tables')
-      .select('tablename')
-      .eq('schemaname', 'public')
+      .from('products')
+      .select('id')
       .limit(1)
 
     if (error) {
@@ -23,7 +22,7 @@ export async function checkDatabaseHealth() {
       status: 'healthy',
       message: 'Database connection successful',
       timestamp: new Date().toISOString(),
-      tablesFound: data?.length || 0
+      recordsFound: data?.length || 0
     }
   } catch (error) {
     return {
