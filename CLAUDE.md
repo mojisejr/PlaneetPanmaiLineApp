@@ -13,6 +13,7 @@
 
 ### 🚨 FORBIDDEN ACTIONS (NEVER ALLOWED)
 - ❌ **NEVER merge PRs yourself** - Provide PR link and wait for user instructions
+- ❌ **NEVER target PR to main branch** - ALWAYS use staging branch as target (staging → main only direction)
 - ❌ **NEVER work on main/staging branches** - Always use feature branches
 - ❌ **NEVER delete critical files** (.env, .git/, node_modules/, package.json, lib/database/)
 - ❌ **NEVER commit sensitive data** (API keys, passwords, secrets) - Use environment variables
@@ -28,6 +29,7 @@
 - ✅ **ALWAYS** ensure 100% lint pass before commit: `npm run lint`
 - ✅ **ALWAYS** use template-guided workflow with proper context validation
 - ✅ **ALWAYS** deploy to staging before production (staging → main only direction)
+- ✅ **ALWAYS** target PR to staging branch - NEVER target main branch directly
 
 ---
 
@@ -68,7 +70,7 @@
 # Task Management
 =plan > [task description]      # Create Task Issue using /docs/TASK-ISSUE-TEMP.md (assigned by current mode)
 =impl > [task-number]          # Implementation workflow (triggers based on current mode)
-=pr > [feedback]               # Create Pull Request from pushed feature branch
+=pr > [feedback]               # Create Pull Request from pushed feature branch (ALWAYS target staging branch - NEVER main)
 
 # Other Commands
 =rrr > [message]              # Create daily retrospective file and Issue
