@@ -1,4 +1,81 @@
+'use client'
+
+import { useLiff } from '@/hooks/use-liff'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+
 export default function Home() {
+  const router = useRouter()
+  const { isReady, isLoggedIn, loading, error } = useLiff()
+  const [mounted, setMounted] = useState(false)
+
+  // Handle client-side mounting
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Redirect to LIFF page if not authenticated
+  useEffect(() => {
+    if (mounted && isReady && !loading && !isLoggedIn) {
+      router.push('/liff')
+    }
+  }, [mounted, isReady, loading, isLoggedIn, router])
+
+  // Show loading state during authentication check
+  if (!mounted || loading || !isReady) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="space-y-4">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+            <h2 className="text-xl font-semibold text-foreground">
+              กำลังตรวจสอบสิทธิ์...
+            </h2>
+            <p className="text-sm text-muted-foreground">กรุณารอสักครู่</p>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Show error state if LIFF initialization fails
+  if (error) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md space-y-6">
+          <div className="space-y-4 text-center">
+            <div className="text-6xl">⚠️</div>
+            <h2 className="text-xl font-semibold text-destructive">
+              เกิดข้อผิดพลาด
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              ไม่สามารถเชื่อมต่อกับระบบได้
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+            <div className="space-y-2 text-sm">
+              <div className="font-medium text-destructive">
+                Error: {error.code}
+              </div>
+              <div className="text-muted-foreground">{error.message}</div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={() => router.push('/liff')}
+              className="rounded-lg bg-primary px-6 py-3 font-medium text-white transition-all hover:bg-primary/90 active:scale-95"
+            >
+              กลับไปหน้าเข้าสู่ระบบ
+            </button>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Show authenticated content
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-6">
       <div className="w-full max-w-md space-y-8 text-center">
