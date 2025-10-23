@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@line/liff": "^2.27.2",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.76.1",
     "@types/node": "^20.17.9",
