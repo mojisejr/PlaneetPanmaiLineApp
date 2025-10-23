@@ -52,13 +52,13 @@
 **Mode Commands**:
 ```bash
 =mode manual     # Tasks assigned to human developer
-=mode copilot     # Tasks assigned to @copilot
+=mode copilot     # Tasks assigned to @github-copilot
 =mode status      # Show current execution mode
 ```
 
 **Mode-Specific Behavior**:
-- **MANUAL Mode**: `=plan` creates tasks assigned to human, `=impl` waits for human implementation
-- **COPILOT Mode**: `=plan` creates tasks assigned to @copilot, `=impl` triggers copilot implementation
+- **MANUAL Mode**: `=plan` creates tasks assigned to human, `=impl` triggers Task tool execution (Option B)
+- **COPILOT Mode**: `=plan` creates tasks assigned to @github-copilot, `=impl` assigns via GitHub CLI (Option A)
 
 ### Core Commands
 ```bash
@@ -70,6 +70,8 @@
 # Task Management
 =plan > [task description]      # Create Task Issue using /docs/TASK-ISSUE-TEMP.md (assigned by current mode)
 =impl > [task-number]          # Implementation workflow (triggers based on current mode)
+=impl batch > [task-numbers]   # Parallel execution of multiple tasks (comma-separated)
+=impl status                   # Monitor implementation progress across all modes
 =pr > [feedback]               # Create Pull Request from pushed feature branch (ALWAYS target staging branch - NEVER main)
 
 # Other Commands
@@ -83,34 +85,79 @@
 4. **Phase 4**: `=plan > [task]` → Create atomic tasks
 5. **Phase 5**: `=impl > [task-number]` → Implement based on mode
 
-### Implementation Workflow (MANDATORY)
-**Pre-Implementation Checklist**:
-1. **Staging Sync**: `git checkout staging && git pull origin staging`
-2. **Task Verification**: Confirm Task Issue `[TASK-XXX-X]` exists and is linked to Context Issue
-3. **Context Status**: Verify Context Issue is `[Ready for Planning]` or `[Implementation Ready]`
-4. **Environment Check**: `git status` - working directory must be clean
+### Dual-Mode Implementation System
 
-**Implementation Steps**:
-1. **Create Feature Branch**: `git checkout -b feature/task-[number]-[description]`
-2. **Execute Implementation**: Follow task requirements, use TodoWrite for complex tasks
-3. **Quality Validation**: `npm run build` (100% pass) + `npm run lint` (100% pass) + `npx tsc --noEmit`
-4. **Commit Changes**:
+#### **Option A: GitHub Copilot Auto-Trigger (COPILOT Mode)**
+**Workflow for `=impl` in COPILOT mode:**
+
+1. **Pre-Implementation Checklist**:
+   - Verify Task Issue `[TASK-XXX-X]` exists and assigned to @github-copilot
+   - Ensure GitHub Copilot is enabled in repository settings
+   - Context Issue must be `[Implementation Ready]`
+
+2. **GitHub CLI Assignment**:
    ```bash
-   git add .
-   git commit -m "feat: [feature description]
+   # Assign single task
+   gh issue edit [task-number] --assignee "github-copilot" --add-label "copilot,priority-high"
 
-   - Address TASK-XXX-X: [task title]
-   - Build validation: 100% PASS
-   - Linter validation: 100% PASS
-
-   🤖 Generated with Claude Code
-   Co-Authored-By: Claude <noreply@anthropic.com>"
+   # Assign multiple tasks (parallel)
+   gh issue edit [task-numbers] --assignee "github-copilot" --add-label "copilot,priority-high"
    ```
-5. **Push Branch**: `git push -u origin feature/task-[number]-[description]`
 
-**Post-Implementation**:
-- **MANUAL Mode**: User commits and pushes, then uses `=pr` to create PR
-- **COPILOT Mode**: Agent handles complete implementation including PR creation via `=pr`
+3. **GitHub Copilot Auto-Execution**:
+   - GitHub Copilot picks up assigned tasks automatically
+   - Creates feature branches: `feature/task-[XXX]-[X]-[description]`
+   - Implements following task specifications exactly
+   - Runs 100% validation: build + lint + TypeScript compilation
+   - Creates PRs targeting staging branch (NEVER main)
+   - Ensures atomic task independence (no conflicts)
+
+4. **Progress Monitoring**:
+   ```bash
+   gh pr list --author "github-copilot" --base staging
+   gh issue list --assignee "github-copilot" --state open
+   ```
+
+#### **Option B: Task Tool Execution (MANUAL Mode)**
+**Workflow for `=impl` in MANUAL mode:**
+
+1. **Pre-Implementation Checklist**:
+   - `git checkout staging && git pull origin staging`
+   - Confirm Task Issue `[TASK-XXX-X]` exists and assigned to human
+   - Context Issue must be `[Implementation Ready]`
+   - `git status` - working directory must be clean
+
+2. **Task Tool Execution**:
+   - Triggers specialized agent with task requirements
+   - Agent creates feature branch from staging
+   - Implements following atomic task specifications
+   - Ensures 100% validation pass (build + lint + TypeScript)
+
+3. **Manual PR Creation**:
+   - Human commits and pushes changes
+   - Uses `=pr` command to create PR targeting staging
+   - Human performs final review and merge
+
+#### **Parallel Execution Commands**
+```bash
+# COPILOT Mode - Parallel assignment
+=impl batch > 16,17,18,19    # Assigns all to GitHub Copilot simultaneously
+
+# MANUAL Mode - Parallel execution
+=impl batch > 16,17,18,19    # Triggers 4 Task agents in parallel
+
+# Monitor all modes
+=impl status                  # Shows progress across all assigned tasks
+```
+
+#### **Mode-Specific Validation Requirements**
+**BOTH MODES MUST ENSURE:**
+- ✅ `npm run build` passes with **ZERO** errors or warnings
+- ✅ `npm run lint` passes with **ZERO** violations
+- ✅ `npx tsc --noEmit` passes (TypeScript compilation)
+- ✅ PRs target **staging branch only** (NEVER main)
+- ✅ Atomic task independence (no merge conflicts)
+- ✅ Follow CLAUDE.md safety rules exactly
 
 ---
 
