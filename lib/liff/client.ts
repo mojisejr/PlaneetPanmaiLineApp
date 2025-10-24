@@ -145,10 +145,38 @@ export const getLiffProfile = async (): Promise<LiffProfile | null> => {
 }
 
 /**
- * Login user
- * Redirects to LINE login page
+ * Get redirect URI for login
+ * Returns current URL with correct protocol (HTTP/HTTPS)
+ * @param customUri - Optional custom redirect URI
+ * @returns Redirect URI string
  */
-export const liffLogin = (): void => {
+const getRedirectUri = (customUri?: string): string => {
+  // Use custom URI if provided
+  if (customUri) {
+    return customUri
+  }
+
+  // Server-side: cannot determine redirect URI
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  // Client-side: use current URL
+  const currentUrl = window.location.href
+  
+  if (liffFeatures.enableDebugLogging) {
+    console.log('[LIFF] Redirect URI:', currentUrl)
+  }
+
+  return currentUrl
+}
+
+/**
+ * Login user
+ * Redirects to LINE login page with proper callback handling
+ * @param redirectUri - Optional redirect URI after login (defaults to current URL)
+ */
+export const liffLogin = (redirectUri?: string): void => {
   if (!isInitialized) {
     throw new LiffError(
       'LIFF is not initialized. Call initializeLiff() first.',
@@ -163,7 +191,23 @@ export const liffLogin = (): void => {
     return
   }
 
-  liff.login()
+  try {
+    const targetUri = getRedirectUri(redirectUri)
+    
+    if (liffFeatures.enableDebugLogging) {
+      console.log('[LIFF] Initiating login with redirect URI:', targetUri)
+    }
+
+    // Login with redirect URI to prevent infinite loops
+    liff.login({
+      redirectUri: targetUri || undefined,
+    })
+  } catch (error) {
+    if (liffFeatures.enableErrorTracking) {
+      console.error('[LIFF] Login failed:', error)
+    }
+    throw new LiffError('Failed to initiate login', 'LOGIN_ERROR', error)
+  }
 }
 
 /**
