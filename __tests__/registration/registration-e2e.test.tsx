@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor, act } from '@testing-library/react'
-import { registrationAnalytics, AnalyticsEventType } from '@/lib/analytics/registration-analytics'
+import { 
+  registrationAnalytics, 
+  AnalyticsEventType,
+  RegistrationAnalytics 
+} from '@/lib/analytics/registration-analytics'
 import type { LiffProfile } from '@/types/liff'
 import type { Member } from '@/types/database'
 
@@ -529,7 +533,7 @@ describe('Registration E2E Tests', () => {
       localStorageMock.getItem.mockReturnValue(persistedData)
 
       // Session 2: Load persisted data
-      const newAnalyticsSession = new (registrationAnalytics.constructor as any)()
+      const newAnalyticsSession = new RegistrationAnalytics()
       newAnalyticsSession.loadPersistedEvents()
 
       expect(newAnalyticsSession.getEvents().length).toBeGreaterThan(0)

@@ -285,14 +285,15 @@ export class RegistrationAnalytics {
   }
 
   /**
-   * Calculate phase duration
+   * Calculate phase duration from session start or last phase end
    */
   private calculatePhaseDuration(phase: string): number {
     if (!this.startTime) return 0
 
     const now = Date.now()
-    const previousPhaseTime = this.phaseTimings.get(phase) || this.startTime
-    const duration = now - previousPhaseTime
+    // Get the most recent phase timing or use session start
+    const lastPhaseTime = Array.from(this.phaseTimings.values()).pop() || this.startTime
+    const duration = now - lastPhaseTime
 
     this.phaseTimings.set(phase, now)
 
@@ -314,6 +315,20 @@ export class RegistrationAnalytics {
   }
 
   /**
+   * Check if an event is an error event
+   */
+  private isErrorEvent(event: AnalyticsEventData): boolean {
+    return (
+      event.type === AnalyticsEventType.LIFF_INIT_ERROR ||
+      event.type === AnalyticsEventType.AUTH_ERROR ||
+      event.type === AnalyticsEventType.REGISTRATION_ERROR ||
+      event.type === AnalyticsEventType.FLOW_ERROR ||
+      event.type === AnalyticsEventType.MEMBER_STATUS_ERROR ||
+      !!event.error
+    )
+  }
+
+  /**
    * Get registration metrics
    */
   getMetrics(): RegistrationMetrics {
@@ -327,9 +342,7 @@ export class RegistrationAnalytics {
     const flowStateEvents = this.getEventsByType(
       AnalyticsEventType.FLOW_STATE_CHANGE
     )
-    const errorEvents = this.events.filter(
-      (event) => event.type.toString().includes('error') || event.error
-    )
+    const errorEvents = this.events.filter((event) => this.isErrorEvent(event))
 
     return {
       liffInitDuration:
@@ -363,11 +376,12 @@ export class RegistrationAnalytics {
   getSummary(): AnalyticsSummary {
     const totalEvents = this.events.length
     const successEvents = this.events.filter((event) =>
-      event.type.toString().includes('success')
+      event.type === AnalyticsEventType.LIFF_INIT_SUCCESS ||
+      event.type === AnalyticsEventType.AUTH_SUCCESS ||
+      event.type === AnalyticsEventType.REGISTRATION_SUCCESS ||
+      event.type === AnalyticsEventType.FLOW_COMPLETE
     )
-    const errorEvents = this.events.filter(
-      (event) => event.type.toString().includes('error') || event.error
-    )
+    const errorEvents = this.events.filter((event) => this.isErrorEvent(event))
     const cacheHitEvents = this.getEventsByType(
       AnalyticsEventType.REGISTRATION_CACHE_HIT
     )
@@ -416,11 +430,57 @@ export class RegistrationAnalytics {
    * Detect phase from event type
    */
   private detectPhaseFromEvent(event: AnalyticsEventData): string {
-    if (event.type.toString().includes('liff')) return 'liff_initialization'
-    if (event.type.toString().includes('auth')) return 'authentication'
-    if (event.type.toString().includes('registration')) return 'registration'
-    if (event.type.toString().includes('flow')) return 'flow_control'
-    if (event.type.toString().includes('member')) return 'member_status'
+    const type = event.type
+    
+    // Map event types to phases explicitly
+    if (
+      type === AnalyticsEventType.LIFF_INIT_START ||
+      type === AnalyticsEventType.LIFF_INIT_SUCCESS ||
+      type === AnalyticsEventType.LIFF_INIT_ERROR
+    ) {
+      return 'liff_initialization'
+    }
+    
+    if (
+      type === AnalyticsEventType.AUTH_START ||
+      type === AnalyticsEventType.AUTH_SUCCESS ||
+      type === AnalyticsEventType.AUTH_ERROR ||
+      type === AnalyticsEventType.AUTH_PROFILE_LOADED
+    ) {
+      return 'authentication'
+    }
+    
+    if (
+      type === AnalyticsEventType.REGISTRATION_CHECK_START ||
+      type === AnalyticsEventType.REGISTRATION_NEW_USER ||
+      type === AnalyticsEventType.REGISTRATION_EXISTING_USER ||
+      type === AnalyticsEventType.REGISTRATION_SUCCESS ||
+      type === AnalyticsEventType.REGISTRATION_ERROR ||
+      type === AnalyticsEventType.REGISTRATION_CACHE_HIT
+    ) {
+      return 'registration'
+    }
+    
+    if (
+      type === AnalyticsEventType.FLOW_STATE_CHANGE ||
+      type === AnalyticsEventType.FLOW_COMPLETE ||
+      type === AnalyticsEventType.FLOW_ERROR
+    ) {
+      return 'flow_control'
+    }
+    
+    if (
+      type === AnalyticsEventType.MEMBER_STATUS_UPDATE ||
+      type === AnalyticsEventType.MEMBER_STATUS_REFRESH ||
+      type === AnalyticsEventType.MEMBER_STATUS_ERROR
+    ) {
+      return 'member_status'
+    }
+    
+    if (type === AnalyticsEventType.PERFORMANCE_TIMING) {
+      return 'performance'
+    }
+    
     return 'unknown'
   }
 

@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, waitFor, screen } from '@testing-library/react'
-import { registrationAnalytics, AnalyticsEventType } from '@/lib/analytics/registration-analytics'
+import { 
+  registrationAnalytics, 
+  AnalyticsEventType,
+  RegistrationAnalytics 
+} from '@/lib/analytics/registration-analytics'
 import { autoRegistrationService } from '@/lib/services/auto-registration'
 import { lineAuthService } from '@/lib/auth/line-auth'
 import type { LiffProfile } from '@/types/liff'
@@ -380,7 +384,7 @@ describe('Registration Integration Tests', () => {
       )
 
       // Create new instance and load persisted data
-      const newAnalytics = new (registrationAnalytics.constructor as any)()
+      const newAnalytics = new RegistrationAnalytics()
       
       const persistedData = JSON.stringify({
         events: registrationAnalytics.getEvents(),
