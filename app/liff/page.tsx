@@ -29,20 +29,29 @@ export default function LiffPage() {
   } = useLiff()
 
   const [mounted, setMounted] = useState(false)
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Loading state
-  if (!mounted || loading) {
+  // Detect when login state changes from false to true (after successful login redirect)
+  useEffect(() => {
+    if (isReady && isLoggedIn && isAuthenticating) {
+      // User successfully logged in, clear authenticating state
+      setIsAuthenticating(false)
+    }
+  }, [isReady, isLoggedIn, isAuthenticating])
+
+  // Loading state - includes LIFF initialization and authentication
+  if (!mounted || loading || isAuthenticating) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6">
         <div className="w-full max-w-md space-y-6 text-center">
           <div className="space-y-4">
             <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
             <h2 className="text-xl font-semibold text-foreground">
-              กำลังโหลด LIFF...
+              {isAuthenticating ? 'กำลังเข้าสู่ระบบ...' : 'กำลังโหลด LIFF...'}
             </h2>
             <p className="text-sm text-muted-foreground">
               กรุณารอสักครู่
@@ -90,8 +99,22 @@ export default function LiffPage() {
     )
   }
 
-  // Not logged in state
-  if (isReady && !isLoggedIn) {
+  // Handle login action
+  const handleLogin = async () => {
+    try {
+      setIsAuthenticating(true)
+      await login()
+      // Note: login() will redirect to LINE, so code after this won't execute
+      // isAuthenticating state will be cleared when user returns and isLoggedIn becomes true
+    } catch (err) {
+      // If login fails, clear authenticating state
+      setIsAuthenticating(false)
+      // Error is already handled by useLiff hook
+    }
+  }
+
+  // Not logged in state - only show if LIFF is ready and definitely not logged in
+  if (isReady && !isLoggedIn && !isAuthenticating) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-6">
         <div className="w-full max-w-md space-y-8">
@@ -110,8 +133,9 @@ export default function LiffPage() {
 
           <div className="space-y-4">
             <button
-              onClick={() => login()}
-              className="w-full rounded-lg bg-[#00B900] px-6 py-4 text-lg font-medium text-white shadow-lg transition-all hover:bg-[#00A000] active:scale-95"
+              onClick={handleLogin}
+              disabled={isAuthenticating}
+              className="w-full rounded-lg bg-[#00B900] px-6 py-4 text-lg font-medium text-white shadow-lg transition-all hover:bg-[#00A000] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
             >
               เข้าสู่ระบบด้วย LINE
             </button>
@@ -119,6 +143,23 @@ export default function LiffPage() {
             <div className="text-center text-xs text-muted-foreground">
               <p>สำหรับสมาชิก LINE Official Account เท่านั้น</p>
             </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
+
+  // Logged in state - only render if we're definitely ready and logged in
+  if (!isReady || !isLoggedIn) {
+    // Fallback: show loading if we somehow reach here without proper state
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="space-y-4">
+            <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
+            <h2 className="text-xl font-semibold text-foreground">
+              กำลังโหลด...
+            </h2>
           </div>
         </div>
       </main>
