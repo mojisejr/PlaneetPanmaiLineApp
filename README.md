@@ -8,12 +8,33 @@ A LINE LIFF (LINE Front-end Framework) application for durian plant nursery calc
 
 ## 🚀 Tech Stack
 
-- **Framework**: Next.js 14.2.15 (App Router)
-- **Language**: TypeScript 5.7.2 (Strict Mode)
-- **Styling**: Tailwind CSS 3.4.16
-- **UI Components**: shadcn/ui
-- **Code Quality**: ESLint + Prettier
-- **Target Platform**: LINE WebView (Mobile-first, 320px minimum width)
+```
+├── app/                          # Next.js App Router
+│   ├── layout.tsx               # Root layout with LIFF provider
+│   ├── page.tsx                 # Main entry point
+│   ├── (auth)/                  # Public routes
+│   │   ├── layout.tsx          # Auth layout
+│   │   └── login/              # Login page
+│   │       └── page.tsx
+│   └── (dashboard)/             # Protected routes
+│       ├── layout.tsx          # Dashboard layout
+│       └── calculator/         # Calculator page
+│           └── page.tsx
+├── components/                  # React components
+│   └── layout/
+│       └── app-layout.tsx      # Reusable app layout
+├── lib/                        # Core libraries
+│   ├── auth/                   # Authentication utilities
+│   │   └── middleware.ts      # Server-side auth middleware
+│   ├── liff/                   # LINE LIFF integration
+│   │   ├── client.ts          # LIFF SDK wrapper
+│   │   ├── provider.tsx       # React context provider
+│   │   └── index.ts           # Public exports
+│   └── routing/
+│       └── auth-guard.tsx     # Client-side authentication guard
+├── middleware.ts               # Next.js Edge middleware
+└── public/                     # Static assets
+```
 
 ## 📦 Getting Started
 
@@ -55,26 +76,24 @@ The development server will start at [http://localhost:3000](http://localhost:30
 
 ## 🏗️ Project Structure
 
-```
-.
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Home page
-│   └── globals.css        # Global styles
-├── components/            # React components
-├── lib/                   # Utility functions
-│   └── utils.ts          # shadcn/ui utilities
-├── docs/                  # Project documentation
-├── .eslintrc.json        # ESLint configuration
-├── .gitignore            # Git ignore rules
-├── components.json       # shadcn/ui configuration
-├── next.config.js        # Next.js configuration
-├── package.json          # Dependencies and scripts
-├── postcss.config.js     # PostCSS configuration
-├── prettier.config.js    # Prettier configuration
-├── tailwind.config.js    # Tailwind CSS configuration
-└── tsconfig.json         # TypeScript configuration
-```
+- **LIFF Integration**: Seamless LINE authentication
+- **Route Groups**: Separate public (auth) and protected (dashboard) routes
+- **Server-Side Middleware**: Edge middleware for route protection
+- **Client-Side Auth Guard**: Automatic redirect for unauthenticated users
+- **Loading States**: Smooth UX during authentication
+- **Double-Layer Protection**: Both server and client-side authentication guards
+
+### App Structure
+
+- **Entry Point** (`app/page.tsx`): Automatic routing based on auth state
+- **Login Page** (`app/(auth)/login/page.tsx`): LINE login interface
+- **Calculator** (`app/(dashboard)/calculator/page.tsx`): Protected member-only calculator
+- **Layouts**: Nested layouts for auth and dashboard sections
+
+### LIFF Client (`lib/liff/client.ts`)
+
+```typescript
+import { liffClient } from '@/lib/liff'
 
 ## 🎨 Design System
 
@@ -125,12 +144,49 @@ NEXT_PUBLIC_APP_URL=your_app_url
 NODE_ENV=development
 ```
 
-### TypeScript
+### Authentication Middleware (`middleware.ts` & `lib/auth/middleware.ts`)
 
-Strict mode enabled for type safety:
-- All types must be explicitly defined
-- No implicit any
-- Strict null checks
+Server-side authentication middleware runs on the Edge runtime:
+
+```typescript
+// Automatically protects routes at the server level
+// Configured in middleware.ts
+
+// Protected routes: /calculator, /calculator/*
+// Auth routes: /login (redirects if already authenticated)
+// Public routes: / (accessible to all)
+
+// Features:
+// - LIFF authentication state validation
+// - Protocol-aware redirects (HTTP/HTTPS)
+// - Return URL preservation for post-login redirects
+// - No authentication bypass possible
+```
+
+## 🔒 Authentication Flow
+
+### Server-Side (Middleware - First Layer)
+1. User accesses any route
+2. Next.js Edge middleware intercepts the request
+3. Checks for LIFF authentication cookies (`liff.access_token` or `auth.session`)
+4. Protected routes without authentication → Redirect to `/login` with return URL
+5. Auth routes with authentication → Redirect to `/calculator`
+6. Allowed requests proceed to client-side
+
+### Client-Side (LIFF + AuthGuard - Second Layer)
+1. LIFF SDK initializes automatically
+2. Check authentication status:
+   - **Logged In**: Render protected content
+   - **Not Logged In**: Redirect to `/login`
+3. User clicks "Login with LINE"
+4. LINE OAuth flow completes
+5. LIFF sets authentication cookies
+6. User redirected to calculator (or return URL)
+
+### Double-Layer Protection
+- **Server-Side Middleware**: Fast edge protection, prevents unauthorized access at network level
+- **Client-Side Guards**: Smooth UX with loading states and profile management
+- **Cookie-Based Auth**: LIFF tokens stored in cookies for server-side validation
 
 ### Code Quality
 
@@ -150,10 +206,14 @@ This app is designed to run within LINE's WebView environment:
 
 ## 🔐 Security
 
-- Environment variables for sensitive data
-- TypeScript strict mode for type safety
-- ESLint rules for code security
-- Proper authentication guards for premium features
+- **Environment variables** for sensitive data (never exposed)
+- **Server-side middleware** for route protection at Edge runtime
+- **Client-side auth guards** for additional protection layer
+- **Secure LIFF token handling** via cookies
+- **Double-layer authentication**: Server + Client protection
+- **No authentication bypass possible**
+- **Return URL preservation** for secure post-login redirects
+- **Protocol-aware redirects** (HTTP/HTTPS handling)
 
 ## 📚 Documentation
 
@@ -174,7 +234,9 @@ This is a private project. For team members:
 
 Private - All Rights Reserved
 
-## 🙏 Acknowledgments
+Development History:
+- [TASK-017-3] LIFF App Entry Point & Routing
+- [TASK-032-2] Authentication Middleware Implementation
 
 - Next.js team for the amazing framework
 - shadcn for the beautiful component library
