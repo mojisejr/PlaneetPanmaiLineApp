@@ -69,6 +69,17 @@ export function RegistrationWelcome({
   const currentProfile = authProfile || liffProfile
 
   /**
+   * Handle continue action
+   */
+  const handleContinue = React.useCallback(() => {
+    setIsCountdownActive(false)
+    setCountdown(null)
+    if (onContinue) {
+      onContinue()
+    }
+  }, [onContinue])
+
+  /**
    * Effect: Handle auto-hide countdown
    */
   useEffect(() => {
@@ -100,17 +111,6 @@ export function RegistrationWelcome({
       setIsCountdownActive(false)
     }
   }, [isAuthenticated, isRegistered, isLoading, isRegistering, autoHideDelay])
-
-  /**
-   * Handle continue action
-   */
-  const handleContinue = React.useCallback(() => {
-    setIsCountdownActive(false)
-    setCountdown(null)
-    if (onContinue) {
-      onContinue()
-    }
-  }, [onContinue])
 
   /**
    * Handle retry action
