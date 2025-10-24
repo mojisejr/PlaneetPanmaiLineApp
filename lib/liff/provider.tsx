@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { liffClient, LiffProfile } from './client'
+import { autoRegistrationService } from '@/lib/services/auto-registration'
 
 interface LiffContextType {
   isInitialized: boolean
@@ -35,6 +36,14 @@ export function LiffProvider({ children }: { children: ReactNode }) {
           setIsLoggedIn(true)
           const userProfile = await liffClient.getProfile()
           setProfile(userProfile)
+
+          // Auto-register user on first LIFF access
+          const registrationResult = await autoRegistrationService.checkAndRegister(userProfile)
+          if (registrationResult.success && registrationResult.isNewUser) {
+            console.log('New user registered:', userProfile.userId)
+          } else if (!registrationResult.success) {
+            console.warn('Auto-registration failed:', registrationResult.error)
+          }
         }
       } catch (err) {
         console.error('LIFF initialization error:', err)
@@ -60,6 +69,11 @@ export function LiffProvider({ children }: { children: ReactNode }) {
     liffClient.logout()
     setIsLoggedIn(false)
     setProfile(null)
+    
+    // Clear registration cache on logout
+    if (profile) {
+      autoRegistrationService.clearCache(profile.userId)
+    }
   }
 
   return (
