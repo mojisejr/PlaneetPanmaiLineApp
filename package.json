@@ -1,7 +1,6 @@
 {
-  "name": "planeet-panmai-line-app",
-  "version": "1.0.0",
-  "description": "Praneet Panmai Line App - Premium Member Calculator",
+  "name": "praneet-panmai-line-app",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -10,30 +9,35 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit"
   },
-  "keywords": [
-    "line",
-    "liff",
-    "durian",
-    "calculator"
-  ],
-  "author": "mojisejr",
-  "license": "ISC",
   "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
     "@line/liff": "^2.27.2",
+    "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.76.1",
-    "@types/node": "^24.9.1",
-    "@types/react": "^19.2.2",
-    "@types/react-dom": "^19.2.2",
-    "autoprefixer": "^10.4.21",
-    "next": "^14.2.33",
-    "postcss": "^8.5.6",
+    "@types/node": "^20.17.9",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "next": "14.2.15",
+    "postcss": "^8.4.49",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "typescript": "^5.9.3"
+    "react-hook-form": "^7.65.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^3.4.16",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.7.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.33",
-    "tailwindcss": "^3.4.18"
+    "eslint-config-next": "14.2.15",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9"
   }
 }

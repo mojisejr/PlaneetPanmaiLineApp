@@ -1,17 +1,12 @@
-# Praneet Panmai Line App - Premium Member Calculator
+# 🌱 Praneet Panmai LINE App
 
-ระบบคำนวณราคาต้นทุเรียนสำหรับสมาชิกเท่านั้น (Members-only Calculator) ผ่าน LIFF สำหรับร้านต้นทุเรียน
+ระบบคำนวณราคาต้นทุเรียนสำหรับสมาชิกเท่านั้น (Premium Member Calculator)
+
+## 🎯 Project Overview
+
+A LINE LIFF (LINE Front-end Framework) application for durian plant nursery calculator and member management system. Built with Next.js 14, TypeScript, and Tailwind CSS.
 
 ## 🚀 Tech Stack
-
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript (strict mode enabled)
-- **Styling**: Tailwind CSS v3
-- **LINE Integration**: @line/liff v2
-- **Database**: Supabase PostgreSQL
-- **Authentication**: LINE LIFF Native Auth
-
-## 📁 Project Structure
 
 ```
 ├── app/                          # Next.js App Router
@@ -41,14 +36,12 @@
 └── public/                     # Static assets
 ```
 
-## 🔧 Setup
+## 📦 Getting Started
 
 ### Prerequisites
 
-1. Node.js 18+ 
-2. npm or yarn
-3. LINE Developers Account
-4. Supabase Account
+- Node.js 18+ 
+- npm or yarn
 
 ### Installation
 
@@ -58,11 +51,6 @@ npm install
 
 # Copy environment variables
 cp .env.example .env
-
-# Configure your environment variables
-# NEXT_PUBLIC_LIFF_ID - Get from LINE Developers Console
-# NEXT_PUBLIC_SUPABASE_URL - Get from Supabase Dashboard
-# NEXT_PUBLIC_SUPABASE_ANON_KEY - Get from Supabase Dashboard
 ```
 
 ### Development
@@ -74,6 +62,9 @@ npm run dev
 # Build for production
 npm run build
 
+# Start production server
+npm start
+
 # Run linter
 npm run lint
 
@@ -81,9 +72,9 @@ npm run lint
 npm run type-check
 ```
 
-## 🎯 Features
+The development server will start at [http://localhost:3000](http://localhost:3000).
 
-### Authentication & Routing
+## 🏗️ Project Structure
 
 - **LIFF Integration**: Seamless LINE authentication
 - **Route Groups**: Separate public (auth) and protected (dashboard) routes
@@ -104,46 +95,53 @@ npm run type-check
 ```typescript
 import { liffClient } from '@/lib/liff'
 
-// Initialize LIFF
-await liffClient.init()
+## 🎨 Design System
 
-// Check login status
-const isLoggedIn = liffClient.isLoggedIn()
+### Mobile-First Approach
 
-// Get user profile
-const profile = await liffClient.getProfile()
+- **Minimum Width**: 320px (LINE WebView compatible)
+- **Touch Targets**: 44px minimum for elderly users
+- **Color Contrast**: 4.5:1 minimum ratio
+- **Thai Language**: Optimized font loading
 
-// Login
-await liffClient.login()
+### Responsive Breakpoints
 
-// Logout
-liffClient.logout()
+```css
+xs: 320px   /* LINE WebView minimum */
+sm: 375px   /* Standard mobile */
+md: 768px   /* Tablet */
+lg: 1024px  /* Desktop */
+xl: 1280px  /* Large desktop */
+2xl: 1536px /* Extra large */
 ```
 
-### LIFF Provider (`lib/liff/provider.tsx`)
+### Component System
 
-```typescript
-import { useLiff } from '@/lib/liff'
+Built with shadcn/ui for consistency and accessibility:
+- Modern, accessible components
+- Customizable with Tailwind CSS
+- TypeScript support
+- Dark mode ready
 
-function MyComponent() {
-  const { isLoggedIn, profile, isLoading, login, logout } = useLiff()
-  
-  // Use LIFF state in your components
-}
-```
+## 🔧 Configuration
 
-### Auth Guard (`lib/routing/auth-guard.tsx`)
+### Environment Variables
 
-```typescript
-import { AuthGuard } from '@/lib/routing/auth-guard'
+Required environment variables (see `.env.example`):
 
-function ProtectedPage() {
-  return (
-    <AuthGuard requireAuth={true}>
-      {/* Your protected content */}
-    </AuthGuard>
-  )
-}
+```bash
+# LINE LIFF
+NEXT_PUBLIC_LIFF_ID=your_liff_id
+LINE_CHANNEL_ACCESS_TOKEN=your_channel_token
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Application
+NEXT_PUBLIC_APP_URL=your_app_url
+NODE_ENV=development
 ```
 
 ### Authentication Middleware (`middleware.ts` & `lib/auth/middleware.ts`)
@@ -190,22 +188,21 @@ Server-side authentication middleware runs on the Edge runtime:
 - **Client-Side Guards**: Smooth UX with loading states and profile management
 - **Cookie-Based Auth**: LIFF tokens stored in cookies for server-side validation
 
-## 📱 Mobile Optimization
+### Code Quality
 
-- Mobile-first responsive design
-- Optimized for LINE WebView
-- Touch-friendly UI elements
-- Fast loading performance
+Automated linting and formatting:
+- ESLint for code quality
+- Prettier for consistent formatting
+- TypeScript compiler checks
 
-## ✅ Validation
+## 📱 LINE LIFF Integration
 
-All quality checks pass:
+This app is designed to run within LINE's WebView environment:
 
-```bash
-✅ npm run build     # ZERO errors or warnings
-✅ npm run lint      # ZERO violations (warnings only)
-✅ npm run type-check # TypeScript compilation success
-```
+1. **Authentication**: LINE LIFF SDK handles user authentication
+2. **Profile Access**: Access to LINE user profile (ID, name, picture)
+3. **Rich Menu**: Integrated with LINE's Rich Menu for navigation
+4. **QR Code**: Supports QR code scanning for member registration
 
 ## 🔐 Security
 
@@ -218,14 +215,30 @@ All quality checks pass:
 - **Return URL preservation** for secure post-login redirects
 - **Protocol-aware redirects** (HTTP/HTTPS handling)
 
+## 📚 Documentation
+
+- [PRD (Product Requirements Document)](./docs/PRD.md)
+- [Database Schema Context](./docs/database-schema-context.md)
+- [Issue Templates](./docs/)
+
+## 🤝 Contributing
+
+This is a private project. For team members:
+
+1. Create feature branch from `staging`
+2. Follow commit message format
+3. Ensure all tests pass
+4. Submit PR for review
+
 ## 📄 License
 
-ISC License - See package.json for details
-
-## 👨‍💻 Development
+Private - All Rights Reserved
 
 Development History:
 - [TASK-017-3] LIFF App Entry Point & Routing
 - [TASK-032-2] Authentication Middleware Implementation
 
-For more information, see `/docs/PRD.md`
+- Next.js team for the amazing framework
+- shadcn for the beautiful component library
+- LINE Corporation for LIFF platform
+- Supabase for backend infrastructure
