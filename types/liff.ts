@@ -63,7 +63,7 @@ export interface LiffInitResult {
 
 // LIFF Actions
 export interface LiffActions {
-  login: () => Promise<void>
+  login: (redirectUri?: string) => Promise<void>
   logout: () => void
   closeWindow: () => void
   openWindow: (url: string, external?: boolean) => void

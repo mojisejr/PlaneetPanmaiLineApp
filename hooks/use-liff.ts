@@ -148,9 +148,9 @@ export function useLiff(): UseLiffReturn {
   }, [])
 
   // Login action
-  const login = useCallback(async () => {
+  const login = useCallback(async (redirectUri?: string) => {
     try {
-      liffLogin()
+      liffLogin(redirectUri)
     } catch (err) {
       const liffError: LiffError = {
         name: 'LiffError',
