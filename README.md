@@ -29,12 +29,15 @@
 │   └── layout/
 │       └── app-layout.tsx      # Reusable app layout
 ├── lib/                        # Core libraries
+│   ├── auth/                   # Authentication utilities
+│   │   └── middleware.ts      # Server-side auth middleware
 │   ├── liff/                   # LINE LIFF integration
 │   │   ├── client.ts          # LIFF SDK wrapper
 │   │   ├── provider.tsx       # React context provider
 │   │   └── index.ts           # Public exports
 │   └── routing/
-│       └── auth-guard.tsx     # Authentication guard
+│       └── auth-guard.tsx     # Client-side authentication guard
+├── middleware.ts               # Next.js Edge middleware
 └── public/                     # Static assets
 ```
 
@@ -84,8 +87,10 @@ npm run type-check
 
 - **LIFF Integration**: Seamless LINE authentication
 - **Route Groups**: Separate public (auth) and protected (dashboard) routes
-- **Auth Guard**: Automatic redirect for unauthenticated users
+- **Server-Side Middleware**: Edge middleware for route protection
+- **Client-Side Auth Guard**: Automatic redirect for unauthenticated users
 - **Loading States**: Smooth UX during authentication
+- **Double-Layer Protection**: Both server and client-side authentication guards
 
 ### App Structure
 
@@ -141,16 +146,49 @@ function ProtectedPage() {
 }
 ```
 
+### Authentication Middleware (`middleware.ts` & `lib/auth/middleware.ts`)
+
+Server-side authentication middleware runs on the Edge runtime:
+
+```typescript
+// Automatically protects routes at the server level
+// Configured in middleware.ts
+
+// Protected routes: /calculator, /calculator/*
+// Auth routes: /login (redirects if already authenticated)
+// Public routes: / (accessible to all)
+
+// Features:
+// - LIFF authentication state validation
+// - Protocol-aware redirects (HTTP/HTTPS)
+// - Return URL preservation for post-login redirects
+// - No authentication bypass possible
+```
+
 ## 🔒 Authentication Flow
 
-1. User accesses the app
-2. LIFF SDK initializes automatically
-3. Check authentication status:
-   - **Logged In**: Redirect to `/calculator`
+### Server-Side (Middleware - First Layer)
+1. User accesses any route
+2. Next.js Edge middleware intercepts the request
+3. Checks for LIFF authentication cookies (`liff.access_token` or `auth.session`)
+4. Protected routes without authentication → Redirect to `/login` with return URL
+5. Auth routes with authentication → Redirect to `/calculator`
+6. Allowed requests proceed to client-side
+
+### Client-Side (LIFF + AuthGuard - Second Layer)
+1. LIFF SDK initializes automatically
+2. Check authentication status:
+   - **Logged In**: Render protected content
    - **Not Logged In**: Redirect to `/login`
-4. User clicks "Login with LINE"
-5. LINE OAuth flow completes
-6. User redirected to calculator
+3. User clicks "Login with LINE"
+4. LINE OAuth flow completes
+5. LIFF sets authentication cookies
+6. User redirected to calculator (or return URL)
+
+### Double-Layer Protection
+- **Server-Side Middleware**: Fast edge protection, prevents unauthorized access at network level
+- **Client-Side Guards**: Smooth UX with loading states and profile management
+- **Cookie-Based Auth**: LIFF tokens stored in cookies for server-side validation
 
 ## 📱 Mobile Optimization
 
@@ -171,10 +209,14 @@ All quality checks pass:
 
 ## 🔐 Security
 
-- Environment variables for sensitive data
-- Server-side authentication validation
-- Protected routes with auth guards
-- Secure LIFF token handling
+- **Environment variables** for sensitive data (never exposed)
+- **Server-side middleware** for route protection at Edge runtime
+- **Client-side auth guards** for additional protection layer
+- **Secure LIFF token handling** via cookies
+- **Double-layer authentication**: Server + Client protection
+- **No authentication bypass possible**
+- **Return URL preservation** for secure post-login redirects
+- **Protocol-aware redirects** (HTTP/HTTPS handling)
 
 ## 📄 License
 
@@ -182,6 +224,8 @@ ISC License - See package.json for details
 
 ## 👨‍💻 Development
 
-Developed as part of [TASK-017-3] LIFF App Entry Point & Routing
+Development History:
+- [TASK-017-3] LIFF App Entry Point & Routing
+- [TASK-032-2] Authentication Middleware Implementation
 
 For more information, see `/docs/PRD.md`
