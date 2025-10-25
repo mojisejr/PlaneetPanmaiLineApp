@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { useLineProfile } from '@/hooks/use-line-profile'
+import { useLiff } from '@/hooks/use-liff'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,23 +15,22 @@ interface AuthGuardProps {
 
 /**
  * Authentication Guard Component
- * Blocks non-members from accessing protected calculator features
+ * Blocks non-authenticated users from accessing protected calculator features
+ * Uses LIFF SDK authentication state for hybrid approach
  * Provides Thai-language feedback for authentication states
  */
 export function AuthGuard({ children, fallbackPath = '/' }: AuthGuardProps) {
-  const { isAuthenticated, member, isLoading, error, registrationError } = useLineProfile()
+  const { isReady, isLoggedIn, profile, loading, error } = useLiff()
 
-  // Redirect to fallback if not authenticated after loading
+  // Log authentication state changes for debugging
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && fallbackPath) {
-      // In LIFF environment, we typically don't redirect
-      // Just show the not authenticated message
-      console.warn('[AuthGuard] User not authenticated')
+    if (isReady && !isLoggedIn && !loading) {
+      console.warn('[AuthGuard] User not authenticated via LIFF')
     }
-  }, [isLoading, isAuthenticated, fallbackPath])
+  }, [isReady, isLoggedIn, loading])
 
-  // Loading state
-  if (isLoading) {
+  // Loading state - LIFF initialization or profile loading
+  if (loading || !isReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-green-50 to-white p-4">
         <Card className="w-full max-w-md shadow-lg">
@@ -47,13 +46,13 @@ export function AuthGuard({ children, fallbackPath = '/' }: AuthGuardProps) {
   }
 
   // Error state
-  if (error || registrationError) {
+  if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-red-50 to-white p-4">
         <ErrorDisplay
           title="เกิดข้อผิดพลาด"
-          message={error?.message || registrationError || 'เกิดข้อผิดพลาดที่ไม่คาดคิด'}
-          error={error || new Error(registrationError || 'Unknown error')}
+          message={error.message || 'เกิดข้อผิดพลาดที่ไม่คาดคิด'}
+          error={new Error(error.message || 'Unknown error')}
           onRetry={() => window.location.reload()}
           className="w-full max-w-md shadow-lg"
         />
@@ -61,8 +60,8 @@ export function AuthGuard({ children, fallbackPath = '/' }: AuthGuardProps) {
     )
   }
 
-  // Not authenticated state - Thai branding
-  if (!isAuthenticated || !member) {
+  // Not authenticated state - LIFF ready but not logged in
+  if (!isLoggedIn || !profile) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-amber-50 to-white p-4">
         <Card className="w-full max-w-md shadow-lg">
@@ -109,7 +108,6 @@ export function AuthGuard({ children, fallbackPath = '/' }: AuthGuardProps) {
               </p>
               <Button
                 onClick={() => {
-                  // In LIFF, typically handled by parent layout
                   window.location.href = fallbackPath
                 }}
                 className="w-full"
@@ -124,6 +122,6 @@ export function AuthGuard({ children, fallbackPath = '/' }: AuthGuardProps) {
     )
   }
 
-  // Authenticated and registered - show children
+  // Authenticated via LIFF - show children
   return <>{children}</>
 }
