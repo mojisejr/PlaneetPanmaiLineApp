@@ -1,0 +1,57 @@
+{
+  "name": "ปราณีต พันธุ์ไม้ จันทบุรี",
+  "short_name": "ปราณีต พันธุ์ไม้",
+  "description": "แพลตฟอร์มสมาชิกสำหรับเกษตรกรและผู้ปลูกต้นไม้มืออาชีพ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#22c55e",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "business",
+    "productivity",
+    "utilities"
+  ],
+  "lang": "th",
+  "dir": "ltr",
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "หน้าหลักแอปพลิเคชัน"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "คำนวณราคา",
+      "short_name": "คำนวณ",
+      "description": "เครื่องมือคำนวณราคาต้นไม้",
+      "url": "/calculator",
+      "icons": [
+        {
+          "src": "/icon-calculator.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false
+}
