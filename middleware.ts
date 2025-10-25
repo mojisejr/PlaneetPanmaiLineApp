@@ -16,7 +16,7 @@ import { createAuthMiddleware } from '@/lib/auth/middleware'
 
 // Create the authentication middleware with custom configuration
 const authMiddleware = createAuthMiddleware({
-  protectedRoutes: ['/calculator', '/calculator/*'],
+  protectedRoutes: [],
   authRoutes: ['/login'],
   publicRoutes: ['/'],
   loginPath: '/login',
@@ -36,10 +36,13 @@ export function middleware(request: NextRequest): NextResponse | Promise<NextRes
  * Middleware Configuration
  * Specifies which routes this middleware should run on
  * 
+ * Note: Server-side route protection is disabled (protectedRoutes: [])
+ * Authentication is handled client-side by the AuthGuard component
+ * 
  * Matches:
- * - All calculator routes
- * - Login route
+ * - Login route (for authenticated user redirects)
  * - Root route
+ * - All application routes (for auth state awareness)
  */
 export const config = {
   matcher: [
