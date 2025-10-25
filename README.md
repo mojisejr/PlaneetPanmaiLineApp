@@ -1,10 +1,30 @@
-# 🌱 Praneet Panmai LINE App
+# 🌱 ปราณีต พันธุ์ไม้ จันทบุรี (Praneet Panmai LINE App)
 
-ระบบคำนวณราคาต้นทุเรียนสำหรับสมาชิกเท่านั้น (Premium Member Calculator)
+แพลตฟอร์มสมาชิกสำหรับเกษตรกรและผู้ปลูกต้นไม้มืออาชีพ
+
+**Members Platform for Farmers & Gardeners - Premium Calculator**
 
 ## 🎯 Project Overview
 
-A LINE LIFF (LINE Front-end Framework) application for durian plant nursery calculator and member management system. Built with Next.js 14, TypeScript, and Tailwind CSS.
+A LINE LIFF (LINE Front-end Framework) application designed for **ปราณีต พันธุ์ไม้ จันทบุรี** - a premium members-only platform for farmers and gardeners in Chanthaburi, Thailand. Features a plant price calculator with age-appropriate design optimized for users aged 35+.
+
+### Key Features
+
+- 🧮 **Plant Price Calculator** - Calculate prices for durian and other plants
+- 🌱 **Product Catalog** - Browse available plants with detailed information
+- 📊 **Production Summary** - Track planting costs and yields
+- 💰 **Cost Recording** - Manage expenses and budgets
+- 📚 **Growing Guides** - Learn cultivation techniques
+- 🌤️ **Weather Forecast** - Agricultural weather information
+- 💬 **Support Contact** - Direct communication with experts
+- ⚙️ **Settings** - Manage profile and preferences
+
+### Target Audience
+
+- **Primary Users**: Farmers and gardeners aged 35+
+- **Location**: Chanthaburi Province, Thailand
+- **Language**: Thai (primary), English (secondary)
+- **Device**: Mobile-first, optimized for LINE WebView
 
 ## 🚀 Tech Stack
 
@@ -76,33 +96,80 @@ The development server will start at [http://localhost:3000](http://localhost:30
 
 ## 🏗️ Project Structure
 
+```
+├── app/                          # Next.js App Router
+│   ├── layout.tsx               # Root layout with SEO metadata
+│   ├── page.tsx                 # Landing page with branding
+│   └── liff/                    # LIFF authentication pages
+├── components/                  # React components
+│   ├── header/                  # Branding components
+│   │   └── brand-header.tsx    # Consistent page headers
+│   ├── navigation/              # Navigation components
+│   │   └── simplified-menu.tsx # Age-appropriate menu
+│   ├── profile/                 # User profile components
+│   │   └── premium-profile-card.tsx # Credit card-style profile
+│   └── ui/                      # UI primitives
+│       └── age-appropriate-button.tsx # Large touch buttons
+├── lib/                         # Core libraries
+│   ├── config/                  # Configuration files
+│   │   ├── branding.ts         # Brand constants & accessibility
+│   │   └── seo.ts              # SEO metadata & Open Graph
+│   ├── auth/                    # Authentication utilities
+│   ├── liff/                    # LINE LIFF integration
+│   └── supabase/                # Database operations
+├── public/                      # Static assets
+│   └── manifest.json           # PWA manifest with branding
+└── middleware.ts                # Next.js Edge middleware
+```
+
+### Branding Configuration
+
+The application uses centralized branding configuration:
+
+- **`lib/config/branding.ts`**: Brand names, colors, typography, accessibility settings
+- **`lib/config/seo.ts`**: SEO metadata, Open Graph, Twitter cards, structured data
+
+### Key Features
+
 - **LIFF Integration**: Seamless LINE authentication
-- **Route Groups**: Separate public (auth) and protected (dashboard) routes
-- **Server-Side Middleware**: Edge middleware for route protection
-- **Client-Side Auth Guard**: Automatic redirect for unauthenticated users
-- **Loading States**: Smooth UX during authentication
-- **Double-Layer Protection**: Both server and client-side authentication guards
-
-### App Structure
-
-- **Entry Point** (`app/page.tsx`): Automatic routing based on auth state
-- **Login Page** (`app/(auth)/login/page.tsx`): LINE login interface
-- **Calculator** (`app/(dashboard)/calculator/page.tsx`): Protected member-only calculator
-- **Layouts**: Nested layouts for auth and dashboard sections
-
-### LIFF Client (`lib/liff/client.ts`)
-
-```typescript
-import { liffClient } from '@/lib/liff'
+- **Age-Appropriate Design**: 48px touch targets, 16px+ text, high contrast
+- **Thai Language First**: Optimized for Thai farmers and gardeners
+- **Premium Member Experience**: Credit card-style profiles, tier-based benefits
+- **Simplified Navigation**: 6-8 essential features to reduce cognitive load
+- **PWA Support**: Installable web app with manifest.json
 
 ## 🎨 Design System
+
+### Age-Appropriate Design (35+ Users)
+
+**ปราณีต พันธุ์ไม้** features a specialized design system optimized for elderly farmers and gardeners:
+
+#### Typography
+- **Minimum Body Text**: 16px (readable for all ages)
+- **Minimum Header Text**: 18px (clear hierarchy)
+- **Font Family**: Thai-friendly system fonts (Sukhumvit Set, Noto Sans Thai)
+- **Line Height**: 1.5 - 1.75 for improved readability
+
+#### Touch Targets
+- **Minimum Size**: 48px (exceeds WCAG 2.1 AA standard of 44px)
+- **Button Padding**: Generous spacing for easy tapping
+- **Component Spacing**: Ample whitespace to prevent mis-taps
+- **Active Feedback**: Visual scale animation on press
+
+#### Visual Design
+- **High Contrast**: 4.5:1 minimum color contrast ratio
+- **Primary Color**: Green (#22c55e) - Agricultural theme
+- **Premium Colors**: Gold gradient for premium members
+- **Clear Icons**: Large emoji icons with text labels
+- **Traditional Layout**: List menus instead of app grids
 
 ### Mobile-First Approach
 
 - **Minimum Width**: 320px (LINE WebView compatible)
-- **Touch Targets**: 44px minimum for elderly users
+- **Touch Targets**: 48px minimum for elderly users
 - **Color Contrast**: 4.5:1 minimum ratio
 - **Thai Language**: Optimized font loading
+- **Load Time**: ≤3 seconds on 4G/5G networks
 
 ### Responsive Breakpoints
 
@@ -117,11 +184,21 @@ xl: 1280px  /* Large desktop */
 
 ### Component System
 
-Built with shadcn/ui for consistency and accessibility:
+Built with shadcn/ui and custom age-appropriate components:
+
+#### Core Components
+- **`<AgeAppropriateButton>`** - 48px minimum touch targets with large text
+- **`<PremiumProfileCard>`** - Credit card-style member profile with gradient backgrounds
+- **`<SimplifiedMenu>`** - Traditional list navigation with 6-8 essential features
+- **`<BrandHeader>`** - Consistent branding across all pages
+- **`<CompactMenu>`** - Bottom navigation for mobile (4 key features)
+
+#### Component Features
 - Modern, accessible components
 - Customizable with Tailwind CSS
-- TypeScript support
-- Dark mode ready
+- TypeScript support throughout
+- Dark mode ready (when implemented)
+- Age-appropriate sizing and spacing
 
 ## 🔧 Configuration
 
@@ -220,25 +297,86 @@ This app is designed to run within LINE's WebView environment:
 - [PRD (Product Requirements Document)](./docs/PRD.md)
 - [Database Schema Context](./docs/database-schema-context.md)
 - [Issue Templates](./docs/)
+- [Task Issue Template](./docs/TASK-ISSUE-TEMP.md)
+- [Context Issue Template](./docs/ISSUE-TEMP.md)
+- [Implementation Summary](./IMPLEMENTATION_SUMMARY.md)
+- [Development Guidelines](./CLAUDE.md)
+
+## 🎨 Branding
+
+**Business Name**: ปราณีต พันธุ์ไม้ จันทบุรี (Praneet Panmai Chanthaburi)
+
+**Brand Colors**:
+- Primary: Green (#22c55e) - Agricultural theme
+- Premium: Gold (#fbbf24) - Premium tier badge
+- Accent: Amber (#92400e) - Earthy grounding
+
+**Accessibility Standards**:
+- WCAG 2.1 AA compliant
+- Minimum 48px touch targets
+- 4.5:1 color contrast ratio
+- Large, readable Thai typography
+
+**Target Load Time**: ≤3 seconds on 4G/5G networks
+
+## 🏆 Member Tiers
+
+### Premium Members (สมาชิกพรีเมียม)
+- Plant price calculator access
+- Special member pricing
+- Growing guides
+- Weather forecasts
+- Expert consultation
+
+### Regular Members (สมาชิกทั่วไป)
+- Browse plant catalog
+- Reference pricing
+- Basic guides
 
 ## 🤝 Contributing
 
 This is a private project. For team members:
 
-1. Create feature branch from `staging`
-2. Follow commit message format
-3. Ensure all tests pass
-4. Submit PR for review
+1. **Create feature branch** from `staging`
+2. **Follow commit message format**: `feat:`, `fix:`, `docs:`, etc.
+3. **Ensure all validations pass**:
+   - `npm run build` (0 errors, 0 warnings)
+   - `npm run lint` (0 new violations)
+   - `npx tsc --noEmit` (TypeScript compilation)
+4. **Submit PR** targeting `staging` branch (NEVER `main` directly)
+5. **Test on LINE WebView** before deployment
+
+### Development Workflow
+
+```bash
+# Start from staging
+git checkout staging && git pull origin staging
+
+# Create feature branch
+git checkout -b feature/task-XXX-description
+
+# Make changes and commit
+git add .
+git commit -m "feat: implement feature"
+
+# Push and create PR
+git push origin feature/task-XXX-description
+```
 
 ## 📄 License
 
 Private - All Rights Reserved
 
-Development History:
-- [TASK-017-3] LIFF App Entry Point & Routing
-- [TASK-032-2] Authentication Middleware Implementation
+## 🙏 Acknowledgments
 
+Development History:
+- [TASK-037-1] Praneet Panmai Branding System Implementation
+- [TASK-032-2] Authentication Middleware Implementation
+- [TASK-017-3] LIFF App Entry Point & Routing
+
+Built with:
 - Next.js team for the amazing framework
 - shadcn for the beautiful component library
 - LINE Corporation for LIFF platform
 - Supabase for backend infrastructure
+- Thai farmers and gardeners for inspiration
