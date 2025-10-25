@@ -16,7 +16,7 @@ import { createAuthMiddleware } from '@/lib/auth/middleware'
 
 // Create the authentication middleware with custom configuration
 const authMiddleware = createAuthMiddleware({
-  protectedRoutes: ['/calculator', '/calculator/*'],
+  protectedRoutes: [],
   authRoutes: ['/login'],
   publicRoutes: ['/'],
   loginPath: '/login',
