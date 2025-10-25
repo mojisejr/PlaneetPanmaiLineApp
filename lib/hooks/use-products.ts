@@ -307,6 +307,7 @@ export function usePriceTiers(productId: string | undefined) {
 
 /**
  * Hook for calculating price with quantity-based tiering
+ * Note: Consider debouncing when used with user input for frequent quantity changes
  */
 export function usePriceCalculation(productId: string | undefined, quantity: number) {
   const [state, setState] = useState<{

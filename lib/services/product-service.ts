@@ -174,8 +174,9 @@ export class ProductService {
     }
 
     if (filters.varietyName) {
+      const varietyLower = filters.varietyName.toLowerCase()
       filtered = filtered.filter((p) =>
-        p.variety_name.toLowerCase().includes(filters.varietyName!.toLowerCase())
+        p.variety_name.toLowerCase().includes(varietyLower)
       )
     }
 
