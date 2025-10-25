@@ -81,13 +81,13 @@ export default function Home() {
       <div className="w-full max-w-md space-y-8 text-center">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold tracking-tight text-primary">
-            🌱 ป๋าหนีด ปั่นหมี่
+            🌱 ปราณีต พันธุ์ไม้ จันทบุรี
           </h1>
           <h2 className="text-2xl font-semibold text-foreground">
-            Premium Member Calculator
+            แพลตฟอร์มสมาชิกเกษตรกร
           </h2>
           <p className="text-muted-foreground">
-            ระบบคำนวณราคาต้นทุเรียนสำหรับสมาชิกเท่านั้น
+            เครื่องมือคำนวณราคาต้นไม้สำหรับสมาชิกเท่านั้น
           </p>
         </div>
 
@@ -121,7 +121,7 @@ export default function Home() {
 
         <div className="text-xs text-muted-foreground">
           <p>Mobile-first design optimized for LINE WebView</p>
-          <p className="mt-1">Minimum width: 320px | Touch targets: 44px</p>
+          <p className="mt-1">Minimum width: 320px | Touch targets: 48px</p>
         </div>
       </div>
     </main>
