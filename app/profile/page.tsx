@@ -95,20 +95,21 @@ export default function ProfilePage() {
         title="ไม่สามารถโหลดโปรไฟล์ได้"
         message={profileError.message || 'กรุณาลองใหม่อีกครั้ง'}
         error={profileError}
-        onRetry={() => window.location.reload()}
+        onRetry={() => router.push('/profile')}
       />
     )
   }
 
   // Build member profile data
+  // TODO: Fetch tier, memberId, and registrationDate from backend/database
   const memberProfile: MemberProfile | null = profile
     ? {
         lineUserId: profile.userId,
         displayName: profile.displayName,
         pictureUrl: profile.pictureUrl,
-        tier: 'premium', // Default to premium - could be fetched from backend
-        memberId: `PRN-${new Date().getFullYear()}-${profile.userId.slice(-4)}`,
-        registrationDate: new Date(), // Could be fetched from backend
+        tier: 'premium', // Temporary: should be fetched from members table
+        memberId: `PRN-${new Date().getFullYear()}-${profile.userId.slice(-4)}`, // Temporary: should be from database
+        registrationDate: new Date(), // Temporary: should be from database
       }
     : null
 

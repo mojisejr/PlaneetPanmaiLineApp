@@ -63,9 +63,8 @@ export default function ComingSoonPage() {
         <div className="space-y-3">
           <Button
             onClick={() => router.push('/profile')}
-            className="w-full"
+            className="w-full min-h-[48px]"
             size="lg"
-            style={{ minHeight: `${BRANDING.ACCESSIBILITY.MIN_TOUCH_TARGET}px` }}
           >
             กลับไปหน้าหลัก
           </Button>
@@ -73,9 +72,8 @@ export default function ComingSoonPage() {
           <Button
             onClick={() => router.back()}
             variant="outline"
-            className="w-full"
+            className="w-full min-h-[48px]"
             size="lg"
-            style={{ minHeight: `${BRANDING.ACCESSIBILITY.MIN_TOUCH_TARGET}px` }}
           >
             ย้อนกลับ
           </Button>
