@@ -9,9 +9,14 @@ import { SimplifiedMenu } from '@/components/navigation/simplified-menu'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { BRANDING } from '@/lib/config/branding'
+import type { Member } from '@/types/database'
 
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic'
+
+// Constants for fallback values
+const FALLBACK_CONTACT_PLACEHOLDER = 'ยังไม่มี'
+const MIN_USERID_LENGTH_FOR_MEMBER_ID = 6
 
 /**
  * Profile Dashboard Page
@@ -31,6 +36,7 @@ export default function ProfilePage() {
   const { profile, isLoading: profileLoading, error: profileError } = useLineProfile()
   const [mounted, setMounted] = useState(false)
   const [currentPath, setCurrentPath] = useState('/profile')
+  const [dbMember, setDbMember] = useState<Member | null>(null)
 
   // Handle client-side mounting
   useEffect(() => {
@@ -43,6 +49,40 @@ export default function ProfilePage() {
       router.push('/liff')
     }
   }, [mounted, isReady, liffLoading, isLoggedIn, router])
+
+  // Fetch member data from database if profile is available
+  useEffect(() => {
+    let isCancelled = false
+    
+    const fetchMemberData = async () => {
+      if (!profile?.userId) return
+      
+      try {
+        const response = await fetch(`/api/auth/profile?lineUserId=${profile.userId}`)
+        const data = await response.json()
+        
+        if (isCancelled) return
+        
+        if (data.exists && data.member) {
+          setDbMember(data.member)
+        } else {
+          setDbMember(null)
+        }
+      } catch (error) {
+        if (isCancelled) return
+        console.error('Failed to fetch member data:', error)
+        setDbMember(null)
+      }
+    }
+
+    if (profile?.userId) {
+      fetchMemberData()
+    }
+    
+    return () => {
+      isCancelled = true
+    }
+  }, [profile?.userId])
 
   // Handle menu item clicks
   const handleMenuClick = (href: string) => {
@@ -100,16 +140,26 @@ export default function ProfilePage() {
     )
   }
 
-  // Build member profile data
-  // TODO: Fetch tier, memberId, and registrationDate from backend/database
+  // Build member profile data with fallbacks
   const memberProfile: MemberProfile | null = profile
     ? {
         lineUserId: profile.userId,
         displayName: profile.displayName,
         pictureUrl: profile.pictureUrl,
-        tier: 'premium', // Temporary: should be fetched from members table
-        memberId: `PRN-${new Date().getFullYear()}-${profile.userId.slice(-4)}`, // Temporary: should be from database
-        registrationDate: new Date(), // Temporary: should be from database
+        // tier: default to 'regular' unless DB says otherwise
+        tier: 'regular',
+        // memberId: generate from LINE userId (first 3 + last 3 chars)
+        memberId: profile.userId.length >= MIN_USERID_LENGTH_FOR_MEMBER_ID
+          ? `${profile.userId.slice(0, 3)}${profile.userId.slice(-3)}`
+          : profile.userId,
+        // registrationDate: use DB data or current date as fallback
+        registrationDate: dbMember?.registration_date 
+          ? new Date(dbMember.registration_date)
+          : new Date(),
+        // contactPhone: use placeholder if missing
+        contactPhone: FALLBACK_CONTACT_PLACEHOLDER,
+        // contactEmail: use placeholder if missing
+        contactEmail: FALLBACK_CONTACT_PLACEHOLDER,
       }
     : null
 
@@ -136,7 +186,7 @@ export default function ProfilePage() {
           {/* Profile Card */}
           {memberProfile && (
             <section aria-label="Member Profile">
-              <PremiumProfileCard profile={memberProfile} variant="compact" />
+              <PremiumProfileCard profile={memberProfile} variant="full" />
             </section>
           )}
 
