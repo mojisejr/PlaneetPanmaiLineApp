@@ -14,6 +14,10 @@ import type { Member } from '@/types/database'
 // Force dynamic rendering (no static prerendering)
 export const dynamic = 'force-dynamic'
 
+// Constants for fallback values
+const FALLBACK_CONTACT_PLACEHOLDER = 'ยังไม่มี'
+const MIN_USERID_LENGTH_FOR_MEMBER_ID = 6
+
 /**
  * Profile Dashboard Page
  * 
@@ -145,17 +149,17 @@ export default function ProfilePage() {
         // tier: default to 'regular' unless DB says otherwise
         tier: 'regular',
         // memberId: generate from LINE userId (first 3 + last 3 chars)
-        memberId: profile.userId.length >= 6 
+        memberId: profile.userId.length >= MIN_USERID_LENGTH_FOR_MEMBER_ID
           ? `${profile.userId.slice(0, 3)}${profile.userId.slice(-3)}`
           : profile.userId,
         // registrationDate: use DB data or current date as fallback
         registrationDate: dbMember?.registration_date 
           ? new Date(dbMember.registration_date)
           : new Date(),
-        // contactPhone: use 'ยังไม่มี' if missing
-        contactPhone: 'ยังไม่มี',
-        // contactEmail: use 'ยังไม่มี' if missing
-        contactEmail: 'ยังไม่มี',
+        // contactPhone: use placeholder if missing
+        contactPhone: FALLBACK_CONTACT_PLACEHOLDER,
+        // contactEmail: use placeholder if missing
+        contactEmail: FALLBACK_CONTACT_PLACEHOLDER,
       }
     : null
 
