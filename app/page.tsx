@@ -14,10 +14,16 @@ export default function Home() {
     setMounted(true)
   }, [])
 
-  // Redirect to LIFF page if not authenticated
+  // Redirect based on authentication status
   useEffect(() => {
-    if (mounted && isReady && !loading && !isLoggedIn) {
-      router.push('/liff')
+    if (mounted && isReady && !loading) {
+      if (!isLoggedIn) {
+        // Not authenticated → redirect to login page
+        router.push('/liff')
+      } else if (isLoggedIn) {
+        // Authenticated → redirect to calculator dashboard
+        router.push('/calculator')
+      }
     }
   }, [mounted, isReady, loading, isLoggedIn, router])
 
