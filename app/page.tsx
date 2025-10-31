@@ -21,8 +21,8 @@ export default function Home() {
         // Not authenticated → redirect to login page
         router.push('/liff')
       } else {
-        // Authenticated → redirect to calculator dashboard
-        router.push('/calculator')
+        // Authenticated → redirect to profile dashboard
+        router.push('/profile')
       }
     }
   }, [mounted, isReady, loading, isLoggedIn, router])
