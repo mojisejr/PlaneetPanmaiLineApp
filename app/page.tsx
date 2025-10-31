@@ -20,7 +20,7 @@ export default function Home() {
       if (!isLoggedIn) {
         // Not authenticated → redirect to login page
         router.push('/liff')
-      } else if (isLoggedIn) {
+      } else {
         // Authenticated → redirect to calculator dashboard
         router.push('/calculator')
       }
