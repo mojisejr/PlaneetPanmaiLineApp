@@ -33,7 +33,7 @@ const MIN_USERID_LENGTH_FOR_MEMBER_ID = 6
 export default function ProfilePage() {
   const router = useRouter()
   const { isReady, isLoggedIn, loading: liffLoading, error: liffError } = useLiff()
-  const { profile, isLoading: profileLoading, error: profileError } = useLineProfile()
+  const { profile, isLoading: profileLoading, error: profileError, authenticate } = useLineProfile()
   const [mounted, setMounted] = useState(false)
   const [currentPath, setCurrentPath] = useState('/profile')
   const [dbMember, setDbMember] = useState<Member | null>(null)
@@ -50,6 +50,33 @@ export default function ProfilePage() {
     }
   }, [mounted, isReady, liffLoading, isLoggedIn, router])
 
+  // Auto-trigger authentication when LIFF is ready but profile is not yet loaded
+  useEffect(() => {
+    let isCancelled = false
+
+    const triggerAuthentication = async () => {
+      // Only trigger if: LIFF ready, no profile yet, not loading, mounted
+      if (isReady && !profile && !profileLoading && mounted) {
+        try {
+          console.log('[Profile Page] Auto-triggering LINE authentication...')
+          await authenticate()
+          console.log('[Profile Page] Authentication completed successfully')
+        } catch (error) {
+          // Gracefully handle authentication errors - existing UI will show login prompt
+          console.warn('[Profile Page] Auto-authentication failed, falling back to manual login:', error)
+        }
+      }
+    }
+
+    if (!isCancelled) {
+      triggerAuthentication()
+    }
+
+    return () => {
+      isCancelled = true
+    }
+  }, [isReady, profile, profileLoading, mounted, authenticate])
+
   // Fetch member data from database if profile is available
   useEffect(() => {
     let isCancelled = false
@@ -58,19 +85,22 @@ export default function ProfilePage() {
       if (!profile?.userId) return
       
       try {
+        console.log('[Profile Page] Fetching member data for userId:', profile.userId)
         const response = await fetch(`/api/auth/profile?lineUserId=${profile.userId}`)
         const data = await response.json()
         
         if (isCancelled) return
         
         if (data.exists && data.member) {
+          console.log('[Profile Page] Member data loaded from database:', data.member.display_name)
           setDbMember(data.member)
         } else {
+          console.log('[Profile Page] Member not found in database, using fallback values')
           setDbMember(null)
         }
       } catch (error) {
         if (isCancelled) return
-        console.error('Failed to fetch member data:', error)
+        console.error('[Profile Page] Failed to fetch member data:', error)
         setDbMember(null)
       }
     }
