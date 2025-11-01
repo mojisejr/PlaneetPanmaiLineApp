@@ -75,7 +75,7 @@ export function PremiumProfileCard({
   // Gradient colors based on tier
   const gradientClass = profile.tier === 'premium'
     ? 'bg-gradient-to-br from-amber-500 via-yellow-400 to-amber-600'
-    : 'bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500'
+    : 'bg-gradient-to-br from-emerald-600 via-emerald-500 to-emerald-400'
 
   const formatDate = (date?: Date) => {
     if (!date) return '-'
@@ -89,15 +89,15 @@ export function PremiumProfileCard({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-2xl shadow-xl',
-        'p-6 text-white',
+        'relative overflow-hidden rounded-2xl shadow-2xl',
+        'p-6 md:p-8 text-white',
         gradientClass,
         className
       )}
       style={{ minHeight: `${BRANDING.ACCESSIBILITY.MIN_TOUCH_TARGET * 4}px` }}
     >
       {/* Background pattern */}
-      <div className="absolute inset-0 opacity-10">
+      <div className="absolute inset-0 opacity-20">
         <div className="absolute inset-0" style={{
           backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
           backgroundSize: '32px 32px',
@@ -110,29 +110,36 @@ export function PremiumProfileCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {profile.pictureUrl && (
-              <Avatar className="h-16 w-16 border-2 border-white/50">
+              <Avatar className="h-16 w-16 md:h-20 md:w-20 ring-2 ring-white/30 border border-white/10">
                 <img 
                   src={profile.pictureUrl} 
                   alt={profile.displayName}
-                  className="object-cover"
+                  className="object-cover rounded-full"
                 />
               </Avatar>
             )}
             <div>
-              <h2 className="text-2xl font-bold leading-tight drop-shadow-md">
+              <h2 className="text-2xl md:text-3xl font-extrabold leading-tight drop-shadow-md">
                 {profile.displayName}
               </h2>
-              <p className="text-sm font-medium text-white/90">
+              <p className="text-base font-medium text-white/90">
                 {BRANDING.THAI_NAME}
               </p>
             </div>
           </div>
 
           {/* Tier badge */}
-          <div className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-bold',
-            'bg-white/20 backdrop-blur-sm border border-white/30',
-          )}>
+          <div 
+            className={cn(
+              'inline-flex items-center justify-center',
+              'min-h-[36px] md:min-h-[40px] px-3 md:px-4 rounded-full',
+              'text-sm md:text-base font-semibold text-white',
+              'bg-white/20 backdrop-blur-sm border border-white/30',
+            )}
+            role="status"
+            aria-label={`Member tier: ${tierInfo.label}`}
+          >
+            <span className="sr-only">Member tier: </span>
             {tierInfo.label}
           </div>
         </div>
@@ -142,10 +149,10 @@ export function PremiumProfileCard({
             {/* Member ID */}
             {profile.memberId && (
               <div className="space-y-1">
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-base font-medium text-white/80">
                   รหัสสมาชิก (Member ID)
                 </p>
-                <p className="text-lg font-mono font-semibold tracking-wider">
+                <p className="text-lg font-mono tracking-wider">
                   {profile.memberId}
                 </p>
               </div>
@@ -154,7 +161,7 @@ export function PremiumProfileCard({
             {/* Registration date */}
             {profile.registrationDate && (
               <div className="space-y-1">
-                <p className="text-sm font-medium text-white/80">
+                <p className="text-base font-medium text-white/80">
                   สมัครสมาชิกเมื่อ
                 </p>
                 <p className="text-base font-medium">
@@ -166,7 +173,7 @@ export function PremiumProfileCard({
             {/* Contact information */}
             {(profile.contactPhone || profile.contactEmail) && (
               <div className="pt-2 border-t border-white/20">
-                <p className="text-sm font-medium text-white/80 mb-2">
+                <p className="text-base font-medium text-white/80 mb-2">
                   ข้อมูลติดต่อ
                 </p>
                 <div className="space-y-1 text-base">
@@ -179,7 +186,7 @@ export function PremiumProfileCard({
                   {profile.contactEmail && (
                     <p className="flex items-center gap-2">
                       <span>📧</span>
-                      <span className="text-sm">{profile.contactEmail}</span>
+                      <span>{profile.contactEmail}</span>
                     </p>
                   )}
                 </div>
@@ -188,14 +195,14 @@ export function PremiumProfileCard({
 
             {/* Member benefits preview */}
             <div className="pt-3 border-t border-white/20">
-              <p className="text-sm font-medium text-white/80 mb-2">
+              <p className="text-base font-medium text-white/80 mb-2">
                 สิทธิประโยชน์
               </p>
               <div className="flex flex-wrap gap-2">
                 {tierInfo.benefits.slice(0, 3).map((benefit, index) => (
                   <span
                     key={index}
-                    className="px-2 py-1 text-xs font-medium rounded-full bg-white/20 backdrop-blur-sm"
+                    className="px-2 py-1 text-sm font-medium rounded-full bg-white/20 backdrop-blur-sm"
                   >
                     {benefit}
                   </span>
@@ -208,7 +215,7 @@ export function PremiumProfileCard({
         {/* Compact view - just name and tier */}
         {variant === 'compact' && (
           <div className="flex items-center justify-between pt-2">
-            <p className="text-sm text-white/80">
+            <p className="text-base text-white/80">
               สมาชิกตั้งแต่ {formatDate(profile.registrationDate)}
             </p>
           </div>
@@ -241,7 +248,7 @@ export function CompactProfileCard({ profile, className }: {
           <img 
             src={profile.pictureUrl} 
             alt={profile.displayName}
-            className="object-cover"
+            className="object-cover rounded-full"
           />
         </Avatar>
       )}
@@ -249,7 +256,7 @@ export function CompactProfileCard({ profile, className }: {
         <p className="font-semibold text-base truncate">
           {profile.displayName}
         </p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {tierInfo.label}
         </p>
       </div>
