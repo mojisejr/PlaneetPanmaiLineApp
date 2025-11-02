@@ -214,12 +214,19 @@ LINE_CHANNEL_ACCESS_TOKEN=your_channel_token
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Required for server-side admin operations
 
 # Application
 NEXT_PUBLIC_APP_URL=your_app_url
 NODE_ENV=development
 ```
+
+**Important Notes:**
+- `SUPABASE_SERVICE_ROLE_KEY` is **required** for server-side member registration
+- Must be configured in Vercel Project Settings → Environment Variables (server-only)
+- Never commit this key to source control or expose it to the client
+- The service role key bypasses Row Level Security (RLS) and should only be used on the server
+- Without this key, new member registration will fail with RLS permission errors (Postgres error 42501)
 
 ### Authentication Middleware (`middleware.ts` & `lib/auth/middleware.ts`)
 

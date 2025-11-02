@@ -97,7 +97,29 @@ export class AutoRegistrationService {
 
           return status
         } else {
-          return this.createErrorStatus('การลงทะเบียนผู้ใช้ใหม่ล้มเหลว กรุณาลองใหม่')
+          // Registration failed - cache error status to prevent infinite retries
+          const errorStatus = this.createErrorStatus('การลงทะเบียนผู้ใช้ใหม่ล้มเหลว กรุณาลองใหม่')
+          
+          // Cache the failed status with error flag
+          const failedCacheData: RegistrationCacheData = {
+            isNewUser: true,
+            isRegistered: false,
+            member: null,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + this.CACHE_EXPIRATION_MS,
+          }
+          
+          const cacheKey = `${this.CACHE_KEY_PREFIX}_${profile.userId}`
+          this.setCacheItem(cacheKey, failedCacheData)
+          
+          if (liffFeatures.enableDebugLogging) {
+            console.log('[AutoRegistrationService] Cached failed registration status to prevent retries:', {
+              userId: profile.userId,
+              expiresAt: new Date(failedCacheData.expiresAt).toISOString(),
+            })
+          }
+          
+          return errorStatus
         }
       }
 
@@ -121,6 +143,31 @@ export class AutoRegistrationService {
       return status
 
     } catch (error) {
+      // Cache error status to prevent infinite retry loops
+      if (profile) {
+        const errorStatus = this.handleError(error, 'checkAndRegister')
+        
+        const failedCacheData: RegistrationCacheData = {
+          isNewUser: false,
+          isRegistered: false,
+          member: null,
+          timestamp: Date.now(),
+          expiresAt: Date.now() + this.CACHE_EXPIRATION_MS,
+        }
+        
+        const cacheKey = `${this.CACHE_KEY_PREFIX}_${profile.userId}`
+        this.setCacheItem(cacheKey, failedCacheData)
+        
+        if (liffFeatures.enableDebugLogging) {
+          console.log('[AutoRegistrationService] Cached error status to prevent infinite retries:', {
+            userId: profile.userId,
+            error: errorStatus.error,
+          })
+        }
+        
+        return errorStatus
+      }
+      
       return this.handleError(error, 'checkAndRegister')
     }
   }
@@ -299,13 +346,29 @@ export class AutoRegistrationService {
         .single()
 
       if (error) {
+        // Log detailed error information for debugging
+        if (liffFeatures.enableErrorTracking) {
+          console.error('[AutoRegistrationService] Failed to register new user:', {
+            message: error.message,
+            code: error.code,
+            details: error.details,
+            hint: error.hint,
+            userId: profile.userId,
+            displayName: profile.displayName,
+          })
+        }
+        
+        if (liffFeatures.enableDebugLogging) {
+          console.log('[AutoRegistrationService] Registration error detected, will use server-side API route')
+        }
+        
         throw error
       }
 
       return data as Member
     } catch (error) {
       if (liffFeatures.enableErrorTracking) {
-        console.error('[AutoRegistrationService] Failed to register new user:', error)
+        console.error('[AutoRegistrationService] Failed to register new user (catch):', error)
       }
       return null
     }
