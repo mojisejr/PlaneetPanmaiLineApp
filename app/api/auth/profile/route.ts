@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { LiffProfile } from '@/types/liff'
 
 /**
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/auth/profile
  * Create or update a member in the database
+ * Uses admin client to bypass RLS for registration operations
  */
 export async function POST(request: NextRequest) {
   try {
@@ -74,7 +76,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for member creation/update
+    const supabase = createAdminClient()
 
     // Check if member already exists
     const { data: existingMember } = await supabase
@@ -85,18 +88,25 @@ export async function POST(request: NextRequest) {
 
     if (existingMember) {
       // Update existing member
+      const updatePayload = {
+        display_name: profile.displayName,
+        updated_at: new Date().toISOString(),
+      }
+      
       const { data, error } = await supabase
         .from('members')
-        .update({
-          display_name: profile.displayName,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('line_user_id', profile.userId)
         .select()
         .single()
 
       if (error) {
-        console.error('[API] Failed to update member:', error)
+        console.error('[API] Failed to update member:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          payload: { line_user_id: profile.userId, display_name: profile.displayName },
+        })
         return NextResponse.json(
           { error: 'Failed to update member' },
           { status: 500 }
@@ -109,19 +119,26 @@ export async function POST(request: NextRequest) {
       )
     } else {
       // Create new member
+      const insertPayload = {
+        line_user_id: profile.userId,
+        display_name: profile.displayName,
+        registration_date: new Date().toISOString(),
+        is_active: true,
+      }
+      
       const { data, error } = await supabase
         .from('members')
-        .insert({
-          line_user_id: profile.userId,
-          display_name: profile.displayName,
-          registration_date: new Date().toISOString(),
-          is_active: true,
-        })
+        .insert(insertPayload)
         .select()
         .single()
 
       if (error) {
-        console.error('[API] Failed to create member:', error)
+        console.error('[API] Failed to create member:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          payload: insertPayload,
+        })
         return NextResponse.json(
           { error: 'Failed to create member' },
           { status: 500 }
