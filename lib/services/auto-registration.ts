@@ -340,7 +340,11 @@ export class AutoRegistrationService {
 
         // Check if this is an RLS error (should not happen with API route, but defensive)
         if (this.isRlsError(lastError)) {
-          console.error('[AutoRegistrationService] RLS error detected - this should not happen with API route')
+          console.error(
+            '⚠️ CRITICAL: RLS error detected during registration via API route. ' +
+            'This indicates a serious server-side configuration issue. ' +
+            'Check that SUPABASE_SERVICE_ROLE_KEY is set correctly and the API route is using the admin client.'
+          )
           // Don't retry RLS errors as they indicate a configuration issue
           break
         }
@@ -384,15 +388,22 @@ export class AutoRegistrationService {
 
   /**
    * Check if error is an RLS violation
+   * Uses specific pattern matching to avoid false positives
    * @param error Error object to check
    * @returns True if RLS error detected
    */
   private isRlsError(error: Error): boolean {
     const errorMessage = error.message.toLowerCase()
-    return (
-      errorMessage.includes(ERROR_CODES.RLS_POLICY_ERROR) ||
-      errorMessage.includes(ERROR_CODES.RLS_VIOLATION)
-    )
+    
+    // Check for specific RLS policy error phrase
+    if (errorMessage.includes(ERROR_CODES.RLS_POLICY_ERROR)) {
+      return true
+    }
+    
+    // Check for PostgreSQL error code 42501 in specific contexts
+    // Use word boundary pattern to avoid matching random numbers
+    const rlsCodePattern = new RegExp(`\\b${ERROR_CODES.RLS_VIOLATION}\\b`)
+    return rlsCodePattern.test(errorMessage)
   }
 
   /**

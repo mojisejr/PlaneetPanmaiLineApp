@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[API] Failed to update member:', error)
         return NextResponse.json(
-          { error: 'Failed to update member', details: error.message },
+          { error: 'Failed to update member' },
           { status: 500 }
         )
       }
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[API] Failed to create member:', error)
         return NextResponse.json(
-          { error: 'Failed to create member', details: error.message },
+          { error: 'Failed to create member' },
           { status: 500 }
         )
       }
@@ -168,9 +168,8 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[API] POST /api/auth/profile error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json(
-      { error: 'Internal server error', details: errorMessage },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
