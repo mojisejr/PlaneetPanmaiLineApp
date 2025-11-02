@@ -31,6 +31,14 @@ interface RegistrationCacheData {
 }
 
 /**
+ * Error codes for registration failures
+ */
+const ERROR_CODES = {
+  RLS_VIOLATION: '42501',
+  RLS_POLICY_ERROR: 'row-level security',
+} as const
+
+/**
  * Auto-Registration Service
  * Automatically detects and registers new LINE users on first LIFF access
  * Integrates with existing authentication and server-side registration API
@@ -309,8 +317,8 @@ export class AutoRegistrationService {
         })
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
-          throw new Error(errorData.error || `Registration failed with status ${response.status}`)
+          const errorData = await this.parseErrorResponse(response)
+          throw new Error(errorData.message)
         }
 
         const result = await response.json()
@@ -331,8 +339,7 @@ export class AutoRegistrationService {
         }
 
         // Check if this is an RLS error (should not happen with API route, but defensive)
-        const errorMessage = lastError.message.toLowerCase()
-        if (errorMessage.includes('row-level security') || errorMessage.includes('42501')) {
+        if (this.isRlsError(lastError)) {
           console.error('[AutoRegistrationService] RLS error detected - this should not happen with API route')
           // Don't retry RLS errors as they indicate a configuration issue
           break
@@ -352,6 +359,40 @@ export class AutoRegistrationService {
     }
 
     return null
+  }
+
+  /**
+   * Parse error response from API
+   * @param response Fetch Response object
+   * @returns Structured error information
+   */
+  private async parseErrorResponse(response: Response): Promise<{ message: string; status: number }> {
+    try {
+      const errorData = await response.json()
+      return {
+        message: errorData.error || `Registration failed with status ${response.status}`,
+        status: response.status,
+      }
+    } catch {
+      // Failed to parse JSON error response
+      return {
+        message: `Network error: ${response.status} ${response.statusText}`,
+        status: response.status,
+      }
+    }
+  }
+
+  /**
+   * Check if error is an RLS violation
+   * @param error Error object to check
+   * @returns True if RLS error detected
+   */
+  private isRlsError(error: Error): boolean {
+    const errorMessage = error.message.toLowerCase()
+    return (
+      errorMessage.includes(ERROR_CODES.RLS_POLICY_ERROR) ||
+      errorMessage.includes(ERROR_CODES.RLS_VIOLATION)
+    )
   }
 
   /**
@@ -484,12 +525,12 @@ export class AutoRegistrationService {
    * @param context Context where error occurred
    * @returns Thai error message
    */
-  private getThaiErrorMessage(error: any, context: string): string {
+  private getThaiErrorMessage(error: any, _context: string): string {
     const errorCode = error?.code || 'UNKNOWN_ERROR'
     const errorMessage = error?.message?.toLowerCase() || ''
 
-    // Check for RLS-specific errors
-    if (errorCode === '42501' || errorMessage.includes('row-level security')) {
+    // Check for RLS-specific errors using constants
+    if (errorCode === ERROR_CODES.RLS_VIOLATION || errorMessage.includes(ERROR_CODES.RLS_POLICY_ERROR)) {
       return 'การลงทะเบียนถูกปฏิเสธ กรุณาติดต่อผู้ดูแลระบบ'
     }
 

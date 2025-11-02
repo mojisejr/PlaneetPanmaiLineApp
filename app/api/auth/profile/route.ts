@@ -59,6 +59,36 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Validate LINE profile data
+ * @param data Unknown data to validate
+ * @returns Validated LiffProfile or null if invalid
+ */
+function validateLiffProfile(data: unknown): LiffProfile | null {
+  if (!data || typeof data !== 'object') {
+    return null
+  }
+
+  const profile = data as Record<string, unknown>
+
+  // Check required fields exist and are strings
+  if (
+    typeof profile.userId !== 'string' ||
+    typeof profile.displayName !== 'string' ||
+    !profile.userId.trim() ||
+    !profile.displayName.trim()
+  ) {
+    return null
+  }
+
+  return {
+    userId: profile.userId.trim(),
+    displayName: profile.displayName.trim(),
+    pictureUrl: typeof profile.pictureUrl === 'string' ? profile.pictureUrl : undefined,
+    statusMessage: typeof profile.statusMessage === 'string' ? profile.statusMessage : undefined,
+  }
+}
+
+/**
  * POST /api/auth/profile
  * Create or update a member in the database
  * Uses admin client to bypass RLS for registration
@@ -68,10 +98,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate request body
-    const profile = body as LiffProfile
-    if (!profile.userId || !profile.displayName) {
+    const profile = validateLiffProfile(body)
+    if (!profile) {
       return NextResponse.json(
-        { error: 'userId and displayName are required' },
+        { error: 'Invalid request: userId and displayName are required and must be non-empty strings' },
         { status: 400 }
       )
     }
