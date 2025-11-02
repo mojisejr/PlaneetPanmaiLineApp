@@ -68,7 +68,7 @@ export function useLineProfile() {
     return () => {
       unsubscribe()
     }
-  }, [autoRegister, registrationStatus])
+  }, [autoRegister])
 
   // Authenticate callback with auto-registration
   const authenticate = useCallback(async (): Promise<LiffProfile | null> => {
