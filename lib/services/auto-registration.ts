@@ -39,6 +39,15 @@ const ERROR_CODES = {
 } as const
 
 /**
+ * Critical error message for RLS violations during API registration
+ * This indicates a serious server-side configuration issue
+ */
+const CRITICAL_RLS_ERROR_MESSAGE = 
+  '⚠️ CRITICAL: RLS error detected during registration via API route. ' +
+  'This indicates a serious server-side configuration issue. ' +
+  'Check that SUPABASE_SERVICE_ROLE_KEY is set correctly and the API route is using the admin client.'
+
+/**
  * Auto-Registration Service
  * Automatically detects and registers new LINE users on first LIFF access
  * Integrates with existing authentication and server-side registration API
@@ -291,8 +300,9 @@ export class AutoRegistrationService {
   /**
    * Register a new user via server-side API route
    * Uses service_role key to bypass RLS policies
+   * Implements retry logic: up to 3 attempts with exponential backoff (1s, 2s, 4s)
    * @param profile LINE profile data
-   * @returns Created member or null if failed
+   * @returns Created member or null if all attempts fail
    */
   private async registerNewUser(profile: LiffProfile): Promise<Member | null> {
     let lastError: Error | null = null
@@ -340,11 +350,7 @@ export class AutoRegistrationService {
 
         // Check if this is an RLS error (should not happen with API route, but defensive)
         if (this.isRlsError(lastError)) {
-          console.error(
-            '⚠️ CRITICAL: RLS error detected during registration via API route. ' +
-            'This indicates a serious server-side configuration issue. ' +
-            'Check that SUPABASE_SERVICE_ROLE_KEY is set correctly and the API route is using the admin client.'
-          )
+          console.error(CRITICAL_RLS_ERROR_MESSAGE)
           // Don't retry RLS errors as they indicate a configuration issue
           break
         }

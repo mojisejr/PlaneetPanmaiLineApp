@@ -59,6 +59,15 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Helper to extract optional string value from unknown data
+ * @param value Unknown value to check
+ * @returns String value if valid, undefined otherwise
+ */
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined
+}
+
+/**
  * Validate LINE profile data
  * @param data Unknown data to validate
  * @returns Validated LiffProfile or null if invalid
@@ -83,8 +92,8 @@ function validateLiffProfile(data: unknown): LiffProfile | null {
   return {
     userId: profile.userId.trim(),
     displayName: profile.displayName.trim(),
-    pictureUrl: typeof profile.pictureUrl === 'string' ? profile.pictureUrl : undefined,
-    statusMessage: typeof profile.statusMessage === 'string' ? profile.statusMessage : undefined,
+    pictureUrl: optionalString(profile.pictureUrl),
+    statusMessage: optionalString(profile.statusMessage),
   }
 }
 
