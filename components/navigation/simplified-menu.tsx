@@ -115,11 +115,11 @@ export function SimplifiedMenu({
       aria-label="Main navigation"
     >
       <ul className="space-y-2">
-        {CORE_FEATURES.map((feature) => {
+        {CORE_FEATURES.map((feature, index) => {
           const isActive = currentPath === feature.href
-          
+
           return (
-            <li key={feature.href}>
+            <li key={`${feature.href}-${index}`}>
               <Link
                 href={feature.href}
                 onClick={() => onItemClick?.(feature.href)}
@@ -189,11 +189,11 @@ export function CompactMenu({ currentPath, className }: {
       aria-label="Bottom navigation"
     >
       <ul className="flex justify-around">
-        {compactFeatures.map((feature) => {
+        {compactFeatures.map((feature, index) => {
           const isActive = currentPath === feature.href
-          
+
           return (
-            <li key={feature.href} className="flex-1">
+            <li key={`${feature.href}-${index}`} className="flex-1">
               <Link
                 href={feature.href}
                 className={cn(
