@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import type { LiffProfile } from '@/types/liff'
 
 /**
@@ -60,6 +61,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/auth/profile
  * Create or update a member in the database
+ * Uses admin client to bypass RLS for registration
  */
 export async function POST(request: NextRequest) {
   try {
@@ -74,10 +76,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    // Use admin client to bypass RLS for member registration
+    const adminClient = createAdminClient()
 
     // Check if member already exists
-    const { data: existingMember } = await supabase
+    const { data: existingMember } = await adminClient
       .from('members')
       .select('*')
       .eq('line_user_id', profile.userId)
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     if (existingMember) {
       // Update existing member
-      const { data, error } = await supabase
+      const { data, error } = await adminClient
         .from('members')
         .update({
           display_name: profile.displayName,
@@ -98,7 +101,7 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[API] Failed to update member:', error)
         return NextResponse.json(
-          { error: 'Failed to update member' },
+          { error: 'Failed to update member', details: error.message },
           { status: 500 }
         )
       }
@@ -108,8 +111,8 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       )
     } else {
-      // Create new member
-      const { data, error } = await supabase
+      // Create new member using admin client (bypasses RLS)
+      const { data, error } = await adminClient
         .from('members')
         .insert({
           line_user_id: profile.userId,
@@ -123,7 +126,7 @@ export async function POST(request: NextRequest) {
       if (error) {
         console.error('[API] Failed to create member:', error)
         return NextResponse.json(
-          { error: 'Failed to create member' },
+          { error: 'Failed to create member', details: error.message },
           { status: 500 }
         )
       }
@@ -135,8 +138,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[API] POST /api/auth/profile error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     )
   }

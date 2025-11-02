@@ -33,11 +33,13 @@ interface RegistrationCacheData {
 /**
  * Auto-Registration Service
  * Automatically detects and registers new LINE users on first LIFF access
- * Integrates with existing authentication and client-side database operations
+ * Integrates with existing authentication and server-side registration API
  */
 export class AutoRegistrationService {
   private readonly CACHE_KEY_PREFIX = 'registration_status'
   private readonly CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000 // 24 hours
+  private readonly MAX_RETRIES = 3 // Maximum retry attempts to prevent infinite loops
+  private readonly RETRY_DELAY_MS = 1000 // Base delay between retries
   private supabase = createClient()
 
   /**
@@ -279,36 +281,77 @@ export class AutoRegistrationService {
   }
 
   /**
-   * Register a new user in the database using client-side operations
+   * Register a new user via server-side API route
+   * Uses service_role key to bypass RLS policies
    * @param profile LINE profile data
    * @returns Created member or null if failed
    */
   private async registerNewUser(profile: LiffProfile): Promise<Member | null> {
-    try {
-      const memberData = {
-        line_user_id: profile.userId,
-        display_name: profile.displayName,
-        registration_date: new Date().toISOString(),
-        is_active: true,
-      }
+    let lastError: Error | null = null
 
-      const { data, error } = await this.supabase
-        .from('members')
-        .insert(memberData)
-        .select()
-        .single()
+    // Retry loop with exponential backoff to handle transient failures
+    for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
+      try {
+        if (liffFeatures.enableDebugLogging && attempt > 0) {
+          console.log(`[AutoRegistrationService] Retry attempt ${attempt + 1}/${this.MAX_RETRIES}`)
+        }
 
-      if (error) {
-        throw error
-      }
+        // Call server-side API route to register user (bypasses RLS)
+        const response = await fetch('/api/auth/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: profile.userId,
+            displayName: profile.displayName,
+          }),
+        })
 
-      return data as Member
-    } catch (error) {
-      if (liffFeatures.enableErrorTracking) {
-        console.error('[AutoRegistrationService] Failed to register new user:', error)
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+          throw new Error(errorData.error || `Registration failed with status ${response.status}`)
+        }
+
+        const result = await response.json()
+        
+        if (result.success && result.member) {
+          if (liffFeatures.enableDebugLogging) {
+            console.log('[AutoRegistrationService] User registered successfully via API')
+          }
+          return result.member as Member
+        }
+
+        throw new Error('Registration API returned invalid response')
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown registration error')
+
+        if (liffFeatures.enableErrorTracking) {
+          console.error(`[AutoRegistrationService] Registration attempt ${attempt + 1} failed:`, error)
+        }
+
+        // Check if this is an RLS error (should not happen with API route, but defensive)
+        const errorMessage = lastError.message.toLowerCase()
+        if (errorMessage.includes('row-level security') || errorMessage.includes('42501')) {
+          console.error('[AutoRegistrationService] RLS error detected - this should not happen with API route')
+          // Don't retry RLS errors as they indicate a configuration issue
+          break
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (attempt < this.MAX_RETRIES - 1) {
+          const delay = this.RETRY_DELAY_MS * Math.pow(2, attempt)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
       }
-      return null
     }
+
+    // All retries failed
+    if (liffFeatures.enableErrorTracking) {
+      console.error('[AutoRegistrationService] All registration attempts failed:', lastError)
+    }
+
+    return null
   }
 
   /**
@@ -443,6 +486,12 @@ export class AutoRegistrationService {
    */
   private getThaiErrorMessage(error: any, context: string): string {
     const errorCode = error?.code || 'UNKNOWN_ERROR'
+    const errorMessage = error?.message?.toLowerCase() || ''
+
+    // Check for RLS-specific errors
+    if (errorCode === '42501' || errorMessage.includes('row-level security')) {
+      return 'การลงทะเบียนถูกปฏิเสธ กรุณาติดต่อผู้ดูแลระบบ'
+    }
 
     const errorMessages: Record<string, string> = {
       'NETWORK_ERROR': 'เครือข่ายมีปัญหา กรุณาลองใหม่อีกครั้ง',
