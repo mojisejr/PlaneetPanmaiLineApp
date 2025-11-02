@@ -42,10 +42,13 @@ const ERROR_CODES = {
  * Critical error message for RLS violations during API registration
  * This indicates a serious server-side configuration issue
  */
-const CRITICAL_RLS_ERROR_MESSAGE = 
-  '⚠️ CRITICAL: RLS error detected during registration via API route. ' +
-  'This indicates a serious server-side configuration issue. ' +
-  'Check that SUPABASE_SERVICE_ROLE_KEY is set correctly and the API route is using the admin client.'
+const CRITICAL_RLS_ERROR_MESSAGE = `⚠️ CRITICAL: RLS error detected during registration via API route. This indicates a serious server-side configuration issue. Check that SUPABASE_SERVICE_ROLE_KEY is set correctly and the API route is using the admin client.`
+
+/**
+ * Regex pattern for detecting PostgreSQL RLS error code 42501
+ * Uses word boundary to avoid false positives
+ */
+const RLS_CODE_PATTERN = new RegExp(`\\b${ERROR_CODES.RLS_VIOLATION}\\b`)
 
 /**
  * Auto-Registration Service
@@ -406,10 +409,8 @@ export class AutoRegistrationService {
       return true
     }
     
-    // Check for PostgreSQL error code 42501 in specific contexts
-    // Use word boundary pattern to avoid matching random numbers
-    const rlsCodePattern = new RegExp(`\\b${ERROR_CODES.RLS_VIOLATION}\\b`)
-    return rlsCodePattern.test(errorMessage)
+    // Check for PostgreSQL error code 42501 using pre-compiled pattern
+    return RLS_CODE_PATTERN.test(errorMessage)
   }
 
   /**
