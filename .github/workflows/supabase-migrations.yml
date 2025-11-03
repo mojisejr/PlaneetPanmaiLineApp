@@ -1,5 +1,9 @@
 name: Supabase Migrations
 
+# This workflow applies database migrations to Supabase PostgreSQL database.
+# NOTE: All migrations MUST be idempotent (safe to re-run) using IF NOT EXISTS checks.
+# The workflow re-applies all migrations on each run, relying on idempotency for safety.
+
 on:
   workflow_dispatch:
   push:
@@ -31,7 +35,27 @@ jobs:
         run: |
           set -eo pipefail
           MIGRATIONS_DIR="lib/supabase/migrations"
-          for f in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
+          
+          # Check if migration directory exists and contains SQL files
+          if [ ! -d "$MIGRATIONS_DIR" ]; then
+            echo "ERROR: Migration directory not found: $MIGRATIONS_DIR"
+            exit 1
+          fi
+          
+          # Find and apply migrations in sorted order
+          shopt -s nullglob
+          migrations=("$MIGRATIONS_DIR"/*.sql)
+          
+          if [ ${#migrations[@]} -eq 0 ]; then
+            echo "No migration files found in $MIGRATIONS_DIR"
+            exit 0
+          fi
+          
+          # Sort migrations by filename
+          IFS=$'\n' sorted=($(sort <<<"${migrations[*]}"))
+          unset IFS
+          
+          for f in "${sorted[@]}"; do
             echo "Applying: $f"
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
             echo "✔️ $f applied"
