@@ -37,16 +37,37 @@ Execute these files in order in your Supabase SQL Editor:
    - Price tiers: 1-4 plants (regular), 5-9 (10% off), 10+ (20% off)
    - 2 sample test members
 
+7. **007_add_member_role.sql** - Add role-based access control
+   - Adds `role` column to members table with default 'member'
+   - Constraint enforces allowed values: 'member' or 'admin'
+   - Enables secure admin backend foundation
+
 ## How to Apply Migrations
 
-### Option 1: Supabase Dashboard (Recommended)
+### Option 1: GitHub Actions (Recommended for Production)
+
+The repository includes an automated migration workflow that runs on:
+- Push to `main` branch when migration files change
+- Manual trigger via GitHub Actions UI
+
+**Setup:**
+1. Go to GitHub repository → Settings → Secrets → Actions
+2. Add `SUPABASE_DB_URL` or `SUPABASE_DIRECT_DB_URL` secret with your Supabase connection string
+3. Push changes to `main` branch or trigger workflow manually
+
+**To trigger manually:**
+1. Go to Actions tab in GitHub
+2. Select "Supabase Migrations" workflow
+3. Click "Run workflow"
+
+### Option 2: Supabase Dashboard
 
 1. Go to your Supabase project dashboard
 2. Navigate to SQL Editor
-3. Copy and paste each migration file in order (001 → 006)
+3. Copy and paste each migration file in order (001 → 007)
 4. Click "Run" for each file
 
-### Option 2: Supabase CLI
+### Option 3: Supabase CLI
 
 ```bash
 # If using Supabase CLI
@@ -69,7 +90,7 @@ psql -h [YOUR_DB_HOST] -U postgres -d postgres < 002_create_products.sql
 - **members** - LINE OA registered users
   - Primary key: `id` (UUID)
   - Unique: `line_user_id` (TEXT)
-  - Fields: display_name, registration_date, contact_info, is_active
+  - Fields: display_name, registration_date, contact_info, is_active, role
 
 - **products** - Durian plant catalog
   - Primary key: `id` (UUID)
