@@ -201,6 +201,7 @@ describe('RegistrationAnalytics', () => {
       registration_date: '2024-01-01T00:00:00.000Z',
       contact_info: null,
       is_active: true,
+      role: 'member',
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
     }
@@ -300,6 +301,7 @@ describe('RegistrationAnalytics', () => {
       registration_date: '2024-01-01T00:00:00.000Z',
       contact_info: null,
       is_active: true,
+      role: 'member',
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
     }

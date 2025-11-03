@@ -1,0 +1,41 @@
+name: Supabase Migrations
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/supabase/migrations/**'
+
+jobs:
+  run-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DIRECT_DB_URL }}" ] && [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "ERROR: Set SUPABASE_DB_URL (or SUPABASE_DIRECT_DB_URL) in GitHub Secrets"; 
+            exit 1;
+          fi
+      
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DIRECT_DB_URL || secrets.SUPABASE_DB_URL }}
+        run: |
+          set -eo pipefail
+          MIGRATIONS_DIR="lib/supabase/migrations"
+          for f in $(ls "$MIGRATIONS_DIR"/*.sql | sort); do
+            echo "Applying: $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+            echo "✔️ $f applied"
+          done
+      
+      - name: Migration completed
+        run: echo "✅ All migrations applied successfully."

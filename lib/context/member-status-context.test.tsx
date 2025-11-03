@@ -51,6 +51,7 @@ const mockMember: Member = {
   registration_date: '2024-01-01T00:00:00Z',
   contact_info: 'test@example.com',
   is_active: true,
+  role: 'member',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }

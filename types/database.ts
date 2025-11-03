@@ -18,6 +18,7 @@ export interface Database {
           registration_date: string | null
           contact_info: string | null
           is_active: boolean
+          role: 'member' | 'admin'
           created_at: string
           updated_at: string
         }
@@ -28,6 +29,7 @@ export interface Database {
           registration_date?: string | null
           contact_info?: string | null
           is_active?: boolean
+          role?: 'member' | 'admin'
           created_at?: string
           updated_at?: string
         }
@@ -38,6 +40,7 @@ export interface Database {
           registration_date?: string | null
           contact_info?: string | null
           is_active?: boolean
+          role?: 'member' | 'admin'
           created_at?: string
           updated_at?: string
         }
