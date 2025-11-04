@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS members (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create updated_at trigger
+-- Create or replace updated_at trigger function (idempotent)
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -18,6 +18,9 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- Ensure we don't error if the trigger already exists: drop it first
+DROP TRIGGER IF EXISTS handle_members_updated_at ON public.members;
 
 CREATE TRIGGER handle_members_updated_at
     BEFORE UPDATE ON members
