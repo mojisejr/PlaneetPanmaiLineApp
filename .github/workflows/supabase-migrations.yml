@@ -51,12 +51,24 @@ jobs:
             exit 0
           fi
           
-          # Sort filenames safely
-          mapfile -t sorted < <(printf '%s\n' "${migrations[@]}" | sort)
+          # tiny retry helper for transient connectivity
+          retry() { local n=0 max=5; until "$@"; do n=$((n+1)); if [ $n -ge $max ]; then return 1; fi; sleep $((n*2)); done }
+          
+          # validate DB connection
+          if ! retry psql "$DATABASE_URL" -c '\conninfo' >/dev/null 2>&1; then
+            echo "ERROR: cannot connect to DB using DATABASE_URL (check secret format and network)";
+            exit 1;
+          fi
+          
+          # acquire advisory lock to serialize concurrent runs
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT pg_advisory_lock(hashtext('supabase_migrations_lock'));"
+          trap 'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT pg_advisory_unlock(hashtext('\''supabase_migrations_lock'\''))" >/dev/null 2>&1' EXIT
+          
+          # Sort filenames naturally (version-aware)
+          mapfile -t sorted < <(printf '%s\n' "${migrations[@]}" | sort -V)
           
           # Ensure a migration tracking table exists
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "
-          CREATE TABLE IF NOT EXISTS schema_migrations (
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS schema_migrations (
             filename TEXT PRIMARY KEY,
             applied_at TIMESTAMPTZ DEFAULT now()
           );"
@@ -64,8 +76,11 @@ jobs:
           for f in "${sorted[@]}"; do
             filename=$(basename "$f")
             
-            # Check if migration already applied (empty result is ok, connection error should fail)
-            if ! already=$(psql "$DATABASE_URL" -t -A -v filename="$filename" -c "SELECT 1 FROM schema_migrations WHERE filename = :'filename';"); then
+            # Escape single quotes for safe SQL interpolation
+            escaped_filename=$(printf '%s' "$filename" | sed "s/'/''/g")
+            
+            # Check if migration already applied
+            if ! already=$(psql "$DATABASE_URL" -t -A -c "SELECT 1 FROM schema_migrations WHERE filename = '$escaped_filename' LIMIT 1;"); then
               echo "ERROR: Failed to query schema_migrations table"
               exit 1
             fi
@@ -74,12 +89,15 @@ jobs:
               echo "Skipping already-applied migration: $filename"
               continue
             fi
-
+          
             echo "Applying: $f"
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
-            # Only record after success
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v filename="$filename" -c "INSERT INTO schema_migrations(filename) VALUES (:'filename');"
+            # run the migration in a single transaction and stop on error
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f "$f"
+            
+            # Only record after success; make recording idempotent to tolerate races
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "INSERT INTO schema_migrations(filename) VALUES ('$escaped_filename') ON CONFLICT (filename) DO NOTHING;"
             echo "✔️ $f applied and recorded"
+          
           done
       
       - name: Migration completed
