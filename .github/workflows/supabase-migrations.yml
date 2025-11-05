@@ -63,7 +63,13 @@ jobs:
           
           for f in "${sorted[@]}"; do
             filename=$(basename "$f")
-            already=$(psql "$DATABASE_URL" -t -A -v filename="$filename" -c "SELECT 1 FROM schema_migrations WHERE filename = :'filename';" || echo "")
+            
+            # Check if migration already applied (empty result is ok, connection error should fail)
+            if ! already=$(psql "$DATABASE_URL" -t -A -v filename="$filename" -c "SELECT 1 FROM schema_migrations WHERE filename = :'filename';"); then
+              echo "ERROR: Failed to query schema_migrations table"
+              exit 1
+            fi
+            
             if [ -n "$already" ] && [ "$already" = "1" ]; then
               echo "Skipping already-applied migration: $filename"
               continue
