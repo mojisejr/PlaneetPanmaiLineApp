@@ -13,15 +13,27 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create updated_at trigger for products
+-- Ensure trigger function exists (defined in earlier migration)
+-- Make trigger idempotent by dropping first
+DROP TRIGGER IF EXISTS handle_products_updated_at ON public.products;
+
 CREATE TRIGGER handle_products_updated_at
     BEFORE UPDATE ON products
     FOR EACH ROW
     EXECUTE PROCEDURE public.handle_updated_at();
 
--- Add unique constraint for product combinations
-ALTER TABLE products ADD CONSTRAINT unique_product_combination
-UNIQUE (variety_name, size, plant_shape);
+-- Add unique constraint for product combinations (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_namespace n ON c.connamespace = n.oid
+    WHERE c.conname = 'unique_product_combination' AND n.nspname = 'public'
+  ) THEN
+    ALTER TABLE products ADD CONSTRAINT unique_product_combination
+      UNIQUE (variety_name, size, plant_shape);
+  END IF;
+END $$;
 
 -- Add comments for documentation
 COMMENT ON TABLE products IS 'Durian plant catalog with pricing information';
