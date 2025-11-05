@@ -10,15 +10,26 @@ CREATE TABLE IF NOT EXISTS price_tiers (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create updated_at trigger for price_tiers
+-- Create updated_at trigger for price_tiers (idempotent)
+DROP TRIGGER IF EXISTS handle_price_tiers_updated_at ON public.price_tiers;
+
 CREATE TRIGGER handle_price_tiers_updated_at
     BEFORE UPDATE ON price_tiers
     FOR EACH ROW
     EXECUTE PROCEDURE public.handle_updated_at();
 
--- Add unique constraint for pricing tiers
-ALTER TABLE price_tiers ADD CONSTRAINT unique_pricing_tier
-UNIQUE (product_id, min_quantity, max_quantity);
+-- Add unique constraint for pricing tiers (idempotent)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_namespace n ON c.connamespace = n.oid
+    WHERE c.conname = 'unique_pricing_tier' AND n.nspname = 'public'
+  ) THEN
+    ALTER TABLE public.price_tiers ADD CONSTRAINT unique_pricing_tier
+      UNIQUE (product_id, min_quantity, max_quantity);
+  END IF;
+END $$;
 
 -- Add comments for documentation
 COMMENT ON TABLE price_tiers IS 'Tiered pricing structure for bulk purchases';
