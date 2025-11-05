@@ -26,7 +26,9 @@ CREATE TRIGGER handle_products_updated_at
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'unique_product_combination'
+    SELECT 1 FROM pg_constraint c
+    JOIN pg_namespace n ON c.connamespace = n.oid
+    WHERE c.conname = 'unique_product_combination' AND n.nspname = 'public'
   ) THEN
     ALTER TABLE products ADD CONSTRAINT unique_product_combination
       UNIQUE (variety_name, size, plant_shape);

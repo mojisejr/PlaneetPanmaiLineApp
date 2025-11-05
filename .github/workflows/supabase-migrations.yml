@@ -63,8 +63,8 @@ jobs:
           
           for f in "${sorted[@]}"; do
             filename=$(basename "$f")
-            already=$(psql "$DATABASE_URL" -t -A -v filename="$filename" -c "SELECT 1 FROM schema_migrations WHERE filename = :'filename';")
-            if [ "$already" = "1" ]; then
+            already=$(psql "$DATABASE_URL" -t -A -v filename="$filename" -c "SELECT 1 FROM schema_migrations WHERE filename = :'filename';" || echo "")
+            if [ -n "$already" ] && [ "$already" = "1" ]; then
               echo "Skipping already-applied migration: $filename"
               continue
             fi
