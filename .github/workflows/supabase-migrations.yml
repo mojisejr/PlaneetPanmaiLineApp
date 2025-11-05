@@ -63,7 +63,7 @@ jobs:
           
           for f in "${sorted[@]}"; do
             filename=$(basename "$f")
-            already=$(psql "$DATABASE_URL" -t -A -c "SELECT 1 FROM schema_migrations WHERE filename = '$filename';")
+            already=$(psql "$DATABASE_URL" -t -A -v filename="$filename" -c "SELECT 1 FROM schema_migrations WHERE filename = :'filename';")
             if [ "$already" = "1" ]; then
               echo "Skipping already-applied migration: $filename"
               continue
@@ -72,7 +72,7 @@ jobs:
             echo "Applying: $f"
             psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
             # Only record after success
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "INSERT INTO schema_migrations(filename) VALUES ('$filename');"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v filename="$filename" -c "INSERT INTO schema_migrations(filename) VALUES (:'filename');"
             echo "✔️ $f applied and recorded"
           done
       
