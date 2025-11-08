@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { supabaseService } from '@/lib/supabase/service-role'
 import type { LiffProfile } from '@/types/liff'
 
 /**
@@ -108,8 +109,8 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       )
     } else {
-      // Create new member
-      const { data, error } = await supabase
+      // Create new member using service role to bypass RLS
+      const { data, error } = await supabaseService
         .from('members')
         .insert({
           line_user_id: profile.userId,
