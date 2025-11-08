@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLiff } from '@/hooks/use-liff'
 import { useLineProfile } from '@/hooks/use-line-profile'
@@ -17,6 +17,8 @@ export const dynamic = 'force-dynamic'
 // Constants for fallback values
 const FALLBACK_CONTACT_PLACEHOLDER = 'ยังไม่มี'
 const MIN_USERID_LENGTH_FOR_MEMBER_ID = 6
+const MAX_AUTH_RETRIES = 3
+const AUTH_RETRY_DELAY = 1000 // 1 second
 
 /**
  * Profile Dashboard Page
@@ -38,6 +40,10 @@ export default function ProfilePage() {
   const [currentPath, setCurrentPath] = useState('/profile')
   const [dbMember, setDbMember] = useState<Member | null>(null)
 
+  // Track authentication attempts to prevent infinite loops
+  const authRetryCount = useRef(0)
+  const isAuthenticating = useRef(false)
+
   // Handle client-side mounting
   useEffect(() => {
     setMounted(true)
@@ -50,23 +56,51 @@ export default function ProfilePage() {
     }
   }, [mounted, isReady, liffLoading, isLoggedIn, router])
 
-  // Auto-trigger authentication when LIFF is ready but profile is not yet loaded
-  useEffect(() => {
-    let isCancelled = false
+  // Stabilized authentication trigger with retry limits and infinite loop prevention
+  const triggerAuthentication = useCallback(async () => {
+    // Prevent concurrent authentication attempts
+    if (isAuthenticating.current) {
+      console.log('[Profile Page] Authentication already in progress, skipping...')
+      return
+    }
 
-    const triggerAuthentication = async () => {
-      // Only trigger if: LIFF ready, no profile yet, not loading, mounted
-      if (isReady && !profile && !profileLoading && mounted) {
-        try {
-          console.log('[Profile Page] Auto-triggering LINE authentication...')
-          await authenticate()
-          console.log('[Profile Page] Authentication completed successfully')
-        } catch (error) {
-          // Gracefully handle authentication errors - existing UI will show login prompt
-          console.warn('[Profile Page] Auto-authentication failed, falling back to manual login:', error)
+    // Check retry limits
+    if (authRetryCount.current >= MAX_AUTH_RETRIES) {
+      console.warn(`[Profile Page] Maximum authentication retries (${MAX_AUTH_RETRIES}) reached, stopping auto-authentication`)
+      return
+    }
+
+    // Only trigger if: LIFF ready, no profile yet, not loading, mounted, and not already authenticated
+    if (isReady && !profile && !profileLoading && mounted && !isLoggedIn) {
+      try {
+        isAuthenticating.current = true
+        authRetryCount.current += 1
+
+        console.log(`[Profile Page] Auto-triggering LINE authentication... (Attempt ${authRetryCount.current}/${MAX_AUTH_RETRIES})`)
+        await authenticate()
+        console.log('[Profile Page] Authentication completed successfully')
+
+        // Reset counters on successful authentication
+        authRetryCount.current = 0
+      } catch (error) {
+        console.warn(`[Profile Page] Auto-authentication attempt ${authRetryCount.current} failed:`, error)
+
+        // If we haven't reached max retries, schedule a retry with delay
+        if (authRetryCount.current < MAX_AUTH_RETRIES) {
+          setTimeout(() => {
+            console.log(`[Profile Page] Retrying authentication in ${AUTH_RETRY_DELAY}ms...`)
+            triggerAuthentication()
+          }, AUTH_RETRY_DELAY)
         }
+      } finally {
+        isAuthenticating.current = false
       }
     }
+  }, [isReady, profile, profileLoading, mounted, isLoggedIn, authenticate])
+
+  // Auto-trigger authentication with stabilized dependencies
+  useEffect(() => {
+    let isCancelled = false
 
     if (!isCancelled) {
       triggerAuthentication()
@@ -75,7 +109,7 @@ export default function ProfilePage() {
     return () => {
       isCancelled = true
     }
-  }, [isReady, profile, profileLoading, mounted, authenticate])
+  }, [triggerAuthentication])
 
   // Fetch member data from database if profile is available
   useEffect(() => {
