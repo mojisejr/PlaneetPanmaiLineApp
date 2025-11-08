@@ -8,7 +8,6 @@ import { ErrorDisplay } from '@/components/ui/error-display'
 import { ShoppingCart, Plus, Minus, Trash2, Calculator } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useLiff } from '@/hooks/use-liff'
-import { autoRegistrationService } from '@/lib/services/auto-registration'
 import type { ProductWithTiers, PriceTier } from '@/types/database'
 
 // Extended CartItem for this component
@@ -27,7 +26,8 @@ interface CalculatorLayoutProps {
  * Calculator Layout Component
  * Manages product catalog display and cart functionality
  * Mobile-first design optimized for LINE WebView
- * Integrates LIFF authentication with auto-registration service
+ * NOTE: Auto-registration has been removed to prevent race conditions.
+ * Registration should only happen through the dedicated QR scan route.
  */
 export function CalculatorLayout({ memberDisplayName }: CalculatorLayoutProps) {
   const { profile } = useLiff()
@@ -35,29 +35,6 @@ export function CalculatorLayout({ memberDisplayName }: CalculatorLayoutProps) {
   const [cart, setCart] = useState<CalculatorCartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isRegistering, setIsRegistering] = useState(false)
-
-  // Auto-register user on component mount if profile is available
-  useEffect(() => {
-    const registerUser = async () => {
-      if (!profile) {
-        return
-      }
-
-      try {
-        setIsRegistering(true)
-        await autoRegistrationService.checkAndRegister(profile)
-      } catch (err) {
-        console.error('[CalculatorLayout] Auto-registration failed:', err)
-        // Don't block user from using calculator if registration fails
-        // Just log the error - registration will be retried on next visit
-      } finally {
-        setIsRegistering(false)
-      }
-    }
-
-    registerUser()
-  }, [profile])
 
   // Load products on mount
   useEffect(() => {
@@ -210,15 +187,15 @@ export function CalculatorLayout({ memberDisplayName }: CalculatorLayoutProps) {
     return { subtotal, savings }
   }, [cart])
 
-  // Loading state - show spinner during product loading or registration
-  if (loading || isRegistering) {
+  // Loading state - show spinner during product loading
+  if (loading) {
     return (
       <div className="container mx-auto max-w-7xl p-4">
         <Card className="shadow-lg">
           <CardContent className="py-12">
-            <LoadingSpinner 
-              size="lg" 
-              text={isRegistering ? 'กำลังลงทะเบียน...' : 'กำลังโหลดรายการสินค้า...'} 
+            <LoadingSpinner
+              size="lg"
+              text="กำลังโหลดรายการสินค้า..."
             />
           </CardContent>
         </Card>
