@@ -125,13 +125,10 @@ const initialState: MemberStatusState = {
 export const MemberStatusProvider: React.FC<MemberStatusProviderProps> = React.memo(({ children }) => {
   const [state, dispatch] = useReducer(memberStatusReducer, initialState)
 
-  // Get LINE profile and registration status from existing hook
+  // Get LINE profile from existing hook - registration properties removed
   const {
     isAuthenticated: isLineAuthenticated,
-    profile,
-    member: hookMember,
-    isRegistered: isLineRegistered,
-    registrationError
+    profile
   } = useLineProfile()
 
   /**
@@ -159,27 +156,15 @@ export const MemberStatusProvider: React.FC<MemberStatusProviderProps> = React.m
    */
   useEffect(() => {
     if (isLineAuthenticated && profile?.userId) {
-      // If we have member data from the hook, use it
-      if (isLineRegistered && hookMember) {
-        dispatch({ type: 'SET_MEMBER', payload: hookMember })
-      } else {
-        // Otherwise fetch from database
-        fetchMemberData(profile.userId)
-      }
+      // Always fetch from database since registration logic moved to QR route
+      fetchMemberData(profile.userId)
     } else {
       // Reset state when not authenticated
       dispatch({ type: 'RESET_STATE' })
     }
-  }, [isLineAuthenticated, profile, isLineRegistered, hookMember, fetchMemberData])
+  }, [isLineAuthenticated, profile, fetchMemberData])
 
-  /**
-   * Handle registration errors from LINE profile hook
-   */
-  useEffect(() => {
-    if (registrationError) {
-      dispatch({ type: 'SET_ERROR', payload: registrationError })
-    }
-  }, [registrationError])
+  // Registration error handling removed - errors now handled by QR route
 
   /**
    * Update member data in database and state

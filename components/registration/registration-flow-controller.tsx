@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useLiff } from '@/hooks/use-liff'
 import { useLineProfile } from '@/hooks/use-line-profile'
 import { useMemberStatus } from '@/lib/context/member-status-context'
-import { RegistrationWelcome } from './registration-welcome'
+// import { RegistrationWelcome } from './registration-welcome' // Disabled - registration now handled by QR route
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorDisplay } from '@/components/ui/error-display'
 
@@ -95,18 +95,9 @@ export function RegistrationFlowController({
       return 'authenticating'
     }
 
-    // Priority 4: Handle registration flow
-    if (lineProfile.isRegistering) {
-      return 'registering'
-    }
-
-    // Priority 5: Handle success states
-    if (lineProfile.isRegistered && memberStatus.member) {
-      // Show welcome for new users
-      if (lineProfile.isNewUser && !showWelcome) {
-        return 'success'
-      }
-      // Ready to proceed
+    // Priority 4: Handle success states (registration removed - only check member status)
+    if (memberStatus.member) {
+      // Ready to proceed - registration logic now handled by QR route
       return 'ready'
     }
 
@@ -123,9 +114,6 @@ export function RegistrationFlowController({
     liff.isLoggedIn,
     liff.isReady,
     lineProfile.error,
-    lineProfile.isRegistering,
-    lineProfile.isRegistered,
-    lineProfile.isNewUser,
     memberStatus.error,
     memberStatus.loading,
     memberStatus.member,
@@ -195,14 +183,11 @@ export function RegistrationFlowController({
     if (lineProfile.error) {
       return lineProfile.error.message || 'การยืนยันตัวตนล้มเหลว'
     }
-    if (lineProfile.registrationError) {
-      return lineProfile.registrationError
-    }
     if (memberStatus.error) {
       return memberStatus.error
     }
     return 'เกิดข้อผิดพลาดที่ไม่คาดคิด'
-  }, [liff.error, lineProfile.error, lineProfile.registrationError, memberStatus.error])
+  }, [liff.error, lineProfile.error, memberStatus.error])
 
   /**
    * Render content based on flow state
@@ -253,12 +238,16 @@ export function RegistrationFlowController({
       case 'success':
         return (
           <div className="flex min-h-screen flex-col items-center justify-center p-6">
-            <RegistrationWelcome
-              onContinue={handleWelcomeComplete}
-              showContinueButton={true}
-              autoHideDelay={autoHideWelcome ? welcomeDelay : undefined}
-              className={className}
-            />
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-green-600 mb-4">ยินดีต้อนรับ!</h2>
+              <p className="text-gray-600 mb-6">การเตรียมระบบเสร็จสมบูรณ์</p>
+              <button
+                onClick={handleWelcomeComplete}
+                className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                ดำเนินการต่อ
+              </button>
+            </div>
           </div>
         )
 
@@ -316,19 +305,13 @@ export function useRegistrationFlow() {
     authLoading: lineProfile.isLoading,
     authError: lineProfile.error,
 
-    // Registration state
-    isRegistering: lineProfile.isRegistering,
-    isRegistered: lineProfile.isRegistered,
-    isNewUser: lineProfile.isNewUser,
-    registrationError: lineProfile.registrationError,
-
     // Member state
     member: memberStatus.member,
     memberLoading: memberStatus.loading,
     memberError: memberStatus.error,
 
-    // Combined state
-    isReady: lineProfile.isRegistered && memberStatus.member !== null && !memberStatus.loading,
-    hasError: !!(liff.error || lineProfile.error || lineProfile.registrationError || memberStatus.error),
+    // Combined state - simplified since registration logic is now handled by QR route
+    isReady: memberStatus.member !== null && !memberStatus.loading,
+    hasError: !!(liff.error || lineProfile.error || memberStatus.error),
   }
 }
