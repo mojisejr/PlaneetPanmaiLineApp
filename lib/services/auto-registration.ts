@@ -301,9 +301,22 @@ export class AutoRegistrationService {
 
       if (!response.ok) {
         if (response.status === 409) {
-          // Member already exists - try to get them
-          const existingMember = await this.getMember(profile.userId)
-          return existingMember
+          // Member already exists - use direct API call to avoid infinite loop
+          try {
+            const profileResponse = await fetch(`/api/auth/profile?lineUserId=${profile.userId}`)
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json()
+              if (profileData.exists && profileData.member) {
+                return profileData.member as Member
+              }
+            }
+          } catch (profileError) {
+            if (liffFeatures.enableErrorTracking) {
+              console.error('[AutoRegistrationService] Failed to get existing member profile:', profileError)
+            }
+          }
+          // Fallback: return null if profile fetch fails
+          return null
         }
         throw new Error(`Auto-registration API request failed: ${response.status}`)
       }
