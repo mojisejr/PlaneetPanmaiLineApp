@@ -39,6 +39,7 @@ export class AutoRegistrationService {
   private readonly CACHE_KEY_PREFIX = 'registration_status'
   private readonly CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000 // 24 hours
   private supabase = createClient()
+  private readonly ongoingRegistrations = new Set<string>() // Track ongoing registrations
 
   /**
    * Main orchestrator method for checking and registering users
@@ -69,56 +70,85 @@ export class AutoRegistrationService {
         return cachedStatus
       }
 
-      // Check if member exists in database
-      let member = await this.getMember(profile.userId)
+      // ADD RACE CONDITION PROTECTION
+      if (this.ongoingRegistrations.has(profile.userId)) {
+        if (liffFeatures.enableDebugLogging) {
+          console.log('[AutoRegistrationService] Registration already in progress:', profile.userId)
+        }
 
-      if (!member) {
-        // New user - auto register
-        member = await this.registerNewUser(profile)
+        // Wait for ongoing registration to complete
+        let attempts = 0
+        while (this.ongoingRegistrations.has(profile.userId) && attempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          attempts++
+        }
 
-        if (member) {
-          const status: RegistrationStatus = {
-            isNewUser: true,
-            isRegistered: true,
-            member,
-            error: null,
-            registrationTime: new Date(),
-          }
-
-          // Cache successful registration
-          this.cacheRegistrationStatus(profile.userId, status)
-
-          if (liffFeatures.enableDebugLogging) {
-            console.log('[AutoRegistrationService] New user registered successfully:', {
-              userId: profile.userId,
-              displayName: profile.displayName,
-            })
-          }
-
-          return status
-        } else {
-          return this.createErrorStatus('การลงทะเบียนผู้ใช้ใหม่ล้มเหลว กรุณาลองใหม่')
+        // Return cached result if available
+        const finalCachedStatus = this.getCachedRegistrationStatus(profile.userId)
+        if (finalCachedStatus) {
+          return finalCachedStatus
         }
       }
 
-      // Existing user - cache and return status
-      const status: RegistrationStatus = {
-        isNewUser: false,
-        isRegistered: true,
-        member,
-        error: null,
+      // Mark registration as in progress
+      this.ongoingRegistrations.add(profile.userId)
+
+      try {
+        // Check if member exists in database
+        let member = await this.getMember(profile.userId)
+
+        if (!member) {
+          // New user - auto register
+          member = await this.registerNewUser(profile)
+
+          if (member) {
+            const status: RegistrationStatus = {
+              isNewUser: true,
+              isRegistered: true,
+              member,
+              error: null,
+              registrationTime: new Date(),
+            }
+
+            // Cache successful registration
+            this.cacheRegistrationStatus(profile.userId, status)
+
+            if (liffFeatures.enableDebugLogging) {
+              console.log('[AutoRegistrationService] New user registered successfully:', {
+                userId: profile.userId,
+                displayName: profile.displayName,
+              })
+            }
+
+            return status
+          } else {
+            return this.createErrorStatus('การลงทะเบียนผู้ใช้ใหม่ล้มเหลว กรุณาลองใหม่')
+          }
+        }
+
+        // Existing user - cache and return status
+        const status: RegistrationStatus = {
+          isNewUser: false,
+          isRegistered: true,
+          member,
+          error: null,
+        }
+
+        this.cacheRegistrationStatus(profile.userId, status)
+
+        if (liffFeatures.enableDebugLogging) {
+          console.log('[AutoRegistrationService] Existing user found:', {
+            userId: profile.userId,
+            displayName: profile.displayName,
+          })
+        }
+
+        return status
+
+      } finally {
+        // Always clear the registration flag
+        this.ongoingRegistrations.delete(profile.userId)
       }
-
-      this.cacheRegistrationStatus(profile.userId, status)
-
-      if (liffFeatures.enableDebugLogging) {
-        console.log('[AutoRegistrationService] Existing user found:', {
-          userId: profile.userId,
-          displayName: profile.displayName,
-        })
-      }
-
-      return status
 
     } catch (error) {
       return this.handleError(error, 'checkAndRegister')
