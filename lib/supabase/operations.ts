@@ -1,5 +1,6 @@
 import { createClient } from './client'
 import { createClient as createServerClient } from './server'
+import { supabaseService } from './service-role'
 import type { Member, Product, PriceTier, ProductWithTiers } from '@/types/database'
 import type { QueryOptions } from '@/types/supabase'
 import { handleSupabaseError } from '@/lib/errors/supabase-error'
@@ -65,15 +66,21 @@ export class SupabaseOperations {
   }
 
   async createMember(member: Omit<Member, 'id' | 'created_at' | 'updated_at' | 'registration_date'>): Promise<Member> {
-    return this.serverQuery(
-      client => client
-        .from('members')
-        .insert(member)
-        .select()
-        .single(),
-      'createMember',
-      'Failed to create member'
-    )
+    // Use service role client to bypass RLS policies for member creation
+    // This ensures new members can be created without requiring prior authentication
+    const result = supabaseService
+      .from('members')
+      .insert(member)
+      .select()
+      .single()
+
+    const { data, error } = await result
+
+    if (error) {
+      handleSupabaseError(error, 'createMember', 'Failed to create member')
+    }
+
+    return data as Member
   }
 
   async updateMember(lineUserId: string, updates: Partial<Member>): Promise<Member> {
