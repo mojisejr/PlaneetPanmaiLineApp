@@ -170,13 +170,14 @@ export async function verifyLineIdToken(
 ): Promise<LineIdTokenPayload> {
   try {
     // Verify token with LINE Platform API
-    const verifyUrl = `https://api.line.me/oauth2/v2.1/verify?id_token=${encodeURIComponent(idToken)}`
+    const verifyUrl = 'https://api.line.me/oauth2/v2.1/verify'
     
     const response = await fetch(verifyUrl, {
-      method: 'GET',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ id_token: idToken }),
     })
 
     if (!response.ok) {
