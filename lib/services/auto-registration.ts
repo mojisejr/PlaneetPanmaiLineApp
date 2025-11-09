@@ -271,30 +271,29 @@ export class AutoRegistrationService {
   }
 
   /**
-   * Get member from database using client-side operations
+   * Get member from database using API-first approach
    * @param lineUserId LINE user ID
    * @returns Member or null if not found
    */
   private async getMember(lineUserId: string): Promise<Member | null> {
     try {
-      const { data, error } = await this.supabase
-        .from('members')
-        .select('*')
-        .eq('line_user_id', lineUserId)
-        .single()
+      // Use API-first approach to avoid client-side RLS issues
+      const response = await fetch(`/api/auth/profile?lineUserId=${lineUserId}`)
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No rows returned - user doesn't exist
-          return null
-        }
-        throw error
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`)
       }
 
-      return data as Member
+      const data = await response.json()
+
+      if (data.exists && data.member) {
+        return data.member as Member
+      }
+
+      return null
     } catch (error) {
       if (liffFeatures.enableErrorTracking) {
-        console.error('[AutoRegistrationService] Failed to get member:', error)
+        console.error('[AutoRegistrationService] Failed to get member via API:', error)
       }
       throw error
     }
@@ -335,7 +334,7 @@ export class AutoRegistrationService {
         }
 
         const result = await response.json()
-        
+
         if (result.success && result.member) {
           if (liffFeatures.enableDebugLogging) {
             console.log('[AutoRegistrationService] User registered successfully via API')
