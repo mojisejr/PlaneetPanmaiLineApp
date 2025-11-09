@@ -1,0 +1,130 @@
+name: CI
+
+# Run unit tests on push and pull requests (using mocked LINE JWKS and no secrets required)
+# Run integration tests only on staging push or manual workflow dispatch (uses real secrets)
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  # Unit Tests Job - Runs on all PRs and pushes
+  # Uses MSW mocks for LINE and API calls, no secrets required
+  unit-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linter
+        run: npm run lint
+      
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+      
+      - name: Run unit tests
+        run: npm test -- --ci --coverage --maxWorkers=2
+        env:
+          # Mock environment variables for tests (not secrets)
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          NEXT_PUBLIC_LIFF_ID: test-liff-id
+          JWT_SECRET: test-jwt-secret-for-ci-only
+      
+      - name: Build application
+        run: npm run build
+        env:
+          # Mock environment variables for build
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          NEXT_PUBLIC_LIFF_ID: test-liff-id
+          JWT_SECRET: test-jwt-secret-for-ci-only
+      
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # Integration Tests Job - Only runs on staging or manual dispatch
+  # Uses real secrets from GitHub repository settings
+  integration-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    # Only run on staging branch push or manual workflow dispatch
+    if: github.ref == 'refs/heads/staging' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "ERROR: JWT_SECRET is not set in repository secrets"
+            exit 1
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" ]; then
+            echo "ERROR: NEXT_PUBLIC_SUPABASE_URL is not set in repository secrets"
+            exit 1
+          fi
+          if [ -z "${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" ]; then
+            echo "ERROR: NEXT_PUBLIC_SUPABASE_ANON_KEY is not set in repository secrets"
+            exit 1
+          fi
+          echo "All required secrets are present"
+      
+      - name: Run integration tests with real secrets
+        run: npm test -- --ci --testPathPattern=integration
+        env:
+          # Real secrets from repository settings
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_LIFF_ID: ${{ secrets.NEXT_PUBLIC_LIFF_ID }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      
+      - name: Build with real configuration
+        run: npm run build
+        env:
+          # Real secrets from repository settings
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_LIFF_ID: ${{ secrets.NEXT_PUBLIC_LIFF_ID }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-staging
+          path: .next/
+          retention-days: 7

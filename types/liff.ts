@@ -40,6 +40,10 @@ export interface LiffState {
   version: string | null
   lineVersion: string | null
   isApiAvailable: (apiName: string) => boolean
+  // Session state
+  sessionToken: string | null
+  sessionError: LiffError | null
+  sessionLoading: boolean
 }
 
 // LIFF Error Types
