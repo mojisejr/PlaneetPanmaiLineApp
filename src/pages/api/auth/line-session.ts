@@ -112,10 +112,12 @@ export default async function handler(
       })
     }
 
-    console.log('[LINE Session] Member found:', {
-      memberId: member.id,
-      lineUserId: member.line_user_id,
-    })
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[LINE Session] Member found:', {
+        memberId: member.id,
+        lineUserId: member.line_user_id,
+      })
+    }
 
     // Step 4: Generate custom JWT token
     let sessionToken: string
