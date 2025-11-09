@@ -31,13 +31,35 @@ interface RegistrationCacheData {
 }
 
 /**
+ * Error codes for registration failures
+ */
+const ERROR_CODES = {
+  RLS_VIOLATION: '42501',
+  RLS_POLICY_ERROR: 'row-level security',
+} as const
+
+/**
+ * Critical error message for RLS violations during API registration
+ * This indicates a serious server-side configuration issue
+ */
+const CRITICAL_RLS_ERROR_MESSAGE = `⚠️ CRITICAL: RLS error detected during registration via API route. This indicates a serious server-side configuration issue. Check that SUPABASE_SERVICE_ROLE_KEY is set correctly and the API route is using the admin client.`
+
+/**
+ * Regex pattern for detecting PostgreSQL RLS error code 42501
+ * Uses word boundary to avoid false positives
+ */
+const RLS_CODE_PATTERN = new RegExp(`\\b${ERROR_CODES.RLS_VIOLATION}\\b`)
+
+/**
  * Auto-Registration Service
  * Automatically detects and registers new LINE users on first LIFF access
- * Integrates with existing authentication and client-side database operations
+ * Integrates with existing authentication and server-side registration API
  */
 export class AutoRegistrationService {
   private readonly CACHE_KEY_PREFIX = 'registration_status'
   private readonly CACHE_EXPIRATION_MS = 24 * 60 * 60 * 1000 // 24 hours
+  private readonly MAX_RETRIES = 3 // Maximum retry attempts to prevent infinite loops
+  private readonly RETRY_DELAY_MS = 1000 // Base delay between retries
   private supabase = createClient()
 
   /**
@@ -278,49 +300,116 @@ export class AutoRegistrationService {
   }
 
   /**
-   * Register a new user using API-first approach
+   * Register a new user via server-side API route
+   * Uses service_role key to bypass RLS policies
+   * Implements retry logic: up to 3 attempts with exponential backoff (1s, 2s, 4s)
    * @param profile LINE profile data
-   * @returns Created member or null if failed
+   * @returns Created member or null if all attempts fail
    */
   private async registerNewUser(profile: LiffProfile): Promise<Member | null> {
-    try {
-      // Use API-first approach to avoid client-side RLS violations
-      const memberData = {
-        lineUserId: profile.userId,
-        displayName: profile.displayName,
-        pictureUrl: profile.pictureUrl || null,
-      }
+    let lastError: Error | null = null
 
-      const response = await fetch('/api/auth/auto-register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(memberData),
-      })
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          // Member already exists - try to get them
-          const existingMember = await this.getMember(profile.userId)
-          return existingMember
+    // Retry loop with exponential backoff to handle transient failures
+    for (let attempt = 0; attempt < this.MAX_RETRIES; attempt++) {
+      try {
+        if (liffFeatures.enableDebugLogging && attempt > 0) {
+          console.log(`[AutoRegistrationService] Retry attempt ${attempt + 1}/${this.MAX_RETRIES}`)
         }
-        throw new Error(`Auto-registration API request failed: ${response.status}`)
-      }
 
-      const data = await response.json()
+        // Call server-side API route to register user (bypasses RLS)
+        const response = await fetch('/api/auth/profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: profile.userId,
+            displayName: profile.displayName,
+          }),
+        })
 
-      if (data.success && data.member) {
-        return data.member as Member
-      }
+        if (!response.ok) {
+          const errorData = await this.parseErrorResponse(response)
+          throw new Error(errorData.message)
+        }
 
-      return null
-    } catch (error) {
-      if (liffFeatures.enableErrorTracking) {
-        console.error('[AutoRegistrationService] Failed to register new user via API:', error)
+        const result = await response.json()
+
+        if (result.success && result.member) {
+          if (liffFeatures.enableDebugLogging) {
+            console.log('[AutoRegistrationService] User registered successfully via API')
+          }
+          return result.member as Member
+        }
+
+        throw new Error('Registration API returned invalid response')
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown registration error')
+
+        if (liffFeatures.enableErrorTracking) {
+          console.error(`[AutoRegistrationService] Registration attempt ${attempt + 1} failed:`, error)
+        }
+
+        // Check if this is an RLS error (should not happen with API route, but defensive)
+        if (this.isRlsError(lastError)) {
+          console.error(CRITICAL_RLS_ERROR_MESSAGE)
+          // Don't retry RLS errors as they indicate a configuration issue
+          break
+        }
+
+        // Wait before retrying (exponential backoff)
+        if (attempt < this.MAX_RETRIES - 1) {
+          const delay = this.RETRY_DELAY_MS * Math.pow(2, attempt)
+          await new Promise(resolve => setTimeout(resolve, delay))
+        }
       }
-      return null
     }
+
+    // All retries failed
+    if (liffFeatures.enableErrorTracking) {
+      console.error('[AutoRegistrationService] All registration attempts failed:', lastError)
+    }
+
+    return null
+  }
+
+  /**
+   * Parse error response from API
+   * @param response Fetch Response object
+   * @returns Structured error information
+   */
+  private async parseErrorResponse(response: Response): Promise<{ message: string; status: number }> {
+    try {
+      const errorData = await response.json()
+      return {
+        message: errorData.error || `Registration failed with status ${response.status}`,
+        status: response.status,
+      }
+    } catch {
+      // Failed to parse JSON error response
+      return {
+        message: `Network error: ${response.status} ${response.statusText}`,
+        status: response.status,
+      }
+    }
+  }
+
+  /**
+   * Check if error is an RLS violation
+   * Uses specific pattern matching to avoid false positives
+   * @param error Error object to check
+   * @returns True if RLS error detected
+   */
+  private isRlsError(error: Error): boolean {
+    const errorMessage = error.message.toLowerCase()
+    
+    // Check for specific RLS policy error phrase
+    if (errorMessage.includes(ERROR_CODES.RLS_POLICY_ERROR)) {
+      return true
+    }
+    
+    // Check for PostgreSQL error code 42501 using pre-compiled pattern
+    return RLS_CODE_PATTERN.test(errorMessage)
   }
 
   /**
@@ -453,8 +542,14 @@ export class AutoRegistrationService {
    * @param context Context where error occurred
    * @returns Thai error message
    */
-  private getThaiErrorMessage(error: any, context: string): string {
+  private getThaiErrorMessage(error: any, _context: string): string {
     const errorCode = error?.code || 'UNKNOWN_ERROR'
+    const errorMessage = error?.message?.toLowerCase() || ''
+
+    // Check for RLS-specific errors using constants
+    if (errorCode === ERROR_CODES.RLS_VIOLATION || errorMessage.includes(ERROR_CODES.RLS_POLICY_ERROR)) {
+      return 'การลงทะเบียนถูกปฏิเสธ กรุณาติดต่อผู้ดูแลระบบ'
+    }
 
     const errorMessages: Record<string, string> = {
       'NETWORK_ERROR': 'เครือข่ายมีปัญหา กรุณาลองใหม่อีกครั้ง',

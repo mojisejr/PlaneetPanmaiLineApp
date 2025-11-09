@@ -1,5 +1,5 @@
--- Insert sample durian varieties
-INSERT INTO products (variety_name, size, plant_shape, base_price, is_available_in_store, description) VALUES
+-- Insert sample durian varieties (idempotent - uses unique constraint: unique_product_combination)
+INSERT INTO public.products (variety_name, size, plant_shape, base_price, is_available_in_store, description) VALUES
 ('ชมพู่', 'M', 'กระโดง', 1500.00, true, 'พันธุ์ชมพู่ ขนาดกลาง รูปทรงกระโดง'),
 ('ชมพู่', 'M', 'ข้าง', 1200.00, true, 'พันธุ์ชมพู่ ขนาดกลาง รูปทรงข้าง'),
 ('ชมพู่', 'L', 'กระโดง', 2000.00, true, 'พันธุ์ชมพู่ ขนาดใหญ่ รูปทรงกระโดง'),
@@ -9,34 +9,39 @@ INSERT INTO products (variety_name, size, plant_shape, base_price, is_available_
 ('ก้านลาย', 'M', 'กระโดง', 1600.00, true, 'พันธุ์ก้านลาย ขนาดกลาง รูปทรงกระโดง'),
 ('ก้านลาย', 'L', 'กระโดง', 2200.00, true, 'พันธุ์ก้านลาย ขนาดใหญ่ รูปทรงกระโดง'),
 ('ชะนี', 'M', 'กระโดง', 1400.00, true, 'พันธุ์ชะนี ขนาดกลาง รูปทรงกระโดง'),
-('ชะนี', 'L', 'กระโดง', 1900.00, true, 'พันธุ์ชะนี ขนาดใหญ่ รูปทรงกระโดง');
+('ชะนี', 'L', 'กระโดง', 1900.00, true, 'พันธุ์ชะนี ขนาดใหญ่ รูปทรงกระโดง')
+ON CONFLICT (variety_name, size, plant_shape) DO NOTHING;
 
--- Insert price tiers for all products
-INSERT INTO price_tiers (product_id, min_quantity, max_quantity, special_price)
+-- Insert price tiers for all products (idempotent - uses unique constraint: unique_pricing_tier)
+INSERT INTO public.price_tiers (product_id, min_quantity, max_quantity, special_price)
 SELECT
   p.id,
   1,  -- min_quantity
   4,  -- max_quantity
   p.base_price  -- 1-4 plants: regular price
-FROM products p;
+FROM public.products p
+ON CONFLICT (product_id, min_quantity, max_quantity) DO NOTHING;
 
-INSERT INTO price_tiers (product_id, min_quantity, max_quantity, special_price)
+INSERT INTO public.price_tiers (product_id, min_quantity, max_quantity, special_price)
 SELECT
   p.id,
   5,  -- min_quantity
   9,  -- max_quantity
   p.base_price * 0.9  -- 5-9 plants: 10% discount
-FROM products p;
+FROM public.products p
+ON CONFLICT (product_id, min_quantity, max_quantity) DO NOTHING;
 
-INSERT INTO price_tiers (product_id, min_quantity, max_quantity, special_price)
+INSERT INTO public.price_tiers (product_id, min_quantity, max_quantity, special_price)
 SELECT
   p.id,
   10, -- min_quantity
   NULL, -- max_quantity (unlimited)
   p.base_price * 0.8  -- 10+ plants: 20% discount
-FROM products p;
+FROM public.products p
+ON CONFLICT (product_id, min_quantity, max_quantity) DO NOTHING;
 
--- Insert sample member (for testing)
-INSERT INTO members (line_user_id, display_name, contact_info) VALUES
+-- Insert sample member (for testing) (idempotent - uses unique constraint on line_user_id)
+INSERT INTO public.members (line_user_id, display_name, contact_info) VALUES
 ('U1234567890abcdef', 'สมชาย ใจดี', '081-234-5678'),
-('U0987654321fedcba', 'มานี รักต้นไม้', '082-345-6789');
+('U0987654321fedcba', 'มานี รักต้นไม้', '082-345-6789')
+ON CONFLICT (line_user_id) DO NOTHING;

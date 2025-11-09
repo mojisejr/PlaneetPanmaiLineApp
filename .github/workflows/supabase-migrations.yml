@@ -1,0 +1,104 @@
+name: Supabase Migrations
+
+# This workflow applies database migrations to Supabase PostgreSQL database.
+# NOTE: All migrations should try to be idempotent; tracking prevents re-applying already-applied files.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/supabase/migrations/**'
+
+jobs:
+  run-migrations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      - name: Validate secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DIRECT_DB_URL }}" ] && [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "ERROR: Set SUPABASE_DB_URL (or SUPABASE_DIRECT_DB_URL) in GitHub Secrets";
+            exit 1;
+          fi
+      
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DIRECT_DB_URL || secrets.SUPABASE_DB_URL }}
+        run: |
+          set -eo pipefail
+          MIGRATIONS_DIR="lib/supabase/migrations"
+          
+          # Check migration directory
+          if [ ! -d "$MIGRATIONS_DIR" ]; then
+            echo "ERROR: Migration directory not found: $MIGRATIONS_DIR"
+            exit 1
+          fi
+          
+          shopt -s nullglob
+          migrations=("$MIGRATIONS_DIR"/*.sql)
+          
+          if [ ${#migrations[@]} -eq 0 ]; then
+            echo "No migration files found in $MIGRATIONS_DIR"
+            exit 0
+          fi
+          
+          # tiny retry helper for transient connectivity
+          retry() { local n=0 max=5; until "$@"; do n=$((n+1)); if [ $n -ge $max ]; then return 1; fi; sleep $((n*2)); done }
+          
+          # validate DB connection
+          if ! retry psql "$DATABASE_URL" -c '\conninfo' >/dev/null 2>&1; then
+            echo "ERROR: cannot connect to DB using DATABASE_URL (check secret format and network)";
+            exit 1;
+          fi
+          
+          # acquire advisory lock to serialize concurrent runs
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT pg_advisory_lock(hashtext('supabase_migrations_lock'));"
+          trap 'psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "SELECT pg_advisory_unlock(hashtext('\''supabase_migrations_lock'\''))" >/dev/null 2>&1' EXIT
+          
+          # Sort filenames naturally (version-aware)
+          mapfile -t sorted < <(printf '%s\n' "${migrations[@]}" | sort -V)
+          
+          # Ensure a migration tracking table exists
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE TABLE IF NOT EXISTS schema_migrations (
+            filename TEXT PRIMARY KEY,
+            applied_at TIMESTAMPTZ DEFAULT now()
+          );"
+          
+          for f in "${sorted[@]}"; do
+            filename=$(basename "$f")
+            
+            # Escape single quotes for safe SQL interpolation
+            escaped_filename=$(printf '%s' "$filename" | sed "s/'/''/g")
+            
+            # Check if migration already applied
+            if ! already=$(psql "$DATABASE_URL" -t -A -c "SELECT 1 FROM schema_migrations WHERE filename = '$escaped_filename' LIMIT 1;"); then
+              echo "ERROR: Failed to query schema_migrations table"
+              exit 1
+            fi
+            
+            if [ -n "$already" ] && [ "$already" = "1" ]; then
+              echo "Skipping already-applied migration: $filename"
+              continue
+            fi
+          
+            echo "Applying: $f"
+            # run the migration in a single transaction and stop on error
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f "$f"
+            
+            # Only record after success; make recording idempotent to tolerate races
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "INSERT INTO schema_migrations(filename) VALUES ('$escaped_filename') ON CONFLICT (filename) DO NOTHING;"
+            echo "✔️ $f applied and recorded"
+          
+          done
+      
+      - name: Migration completed
+        run: echo "✅ All migrations applied successfully."
