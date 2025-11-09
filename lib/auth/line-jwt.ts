@@ -121,6 +121,35 @@ export async function verifyCustomJwt(token: string): Promise<CustomJwtPayload> 
 }
 
 /**
+ * Decode base64url string to UTF-8 string
+ * Works in both Node.js and edge runtime environments
+ * 
+ * @param base64url - Base64url encoded string
+ * @returns Decoded UTF-8 string
+ */
+function decodeBase64Url(base64url: string): string {
+  // Convert base64url to base64
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
+  // Add padding if needed
+  while (base64.length % 4) {
+    base64 += '='
+  }
+  
+  // Use Buffer in Node.js, atob + TextDecoder in browser/edge
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(base64, 'base64').toString('utf-8')
+  } else {
+    // Browser/edge runtime
+    const binaryString = atob(base64)
+    const bytes = new Uint8Array(binaryString.length)
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i)
+    }
+    return new TextDecoder().decode(bytes)
+  }
+}
+
+/**
  * Validate LINE LIFF ID token structure (basic validation)
  * Note: Full validation requires calling LINE's token verification API
  * 
@@ -137,7 +166,7 @@ export function decodeLineIdToken(idToken: string): LineIdTokenPayload {
 
     // Decode payload (base64url)
     const payload = parts[1]
-    const decodedPayload = base64UrlDecode(payload)
+    const decodedPayload = decodeBase64Url(payload)
     const parsed = JSON.parse(decodedPayload) as LineIdTokenPayload
 
     // Basic validation
