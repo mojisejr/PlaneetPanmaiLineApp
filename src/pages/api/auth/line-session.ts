@@ -76,10 +76,14 @@ export default async function handler(
                      process.env.NEXT_PUBLIC_LIFF_ID_DEV
 
       linePayload = await verifyLineIdToken(lineIdToken, liffId)
-      console.log('[LINE Session] LINE token verified:', {
-        userId: linePayload.sub,
-        name: linePayload.name,
-      })
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[LINE Session] LINE token verified:', {
+          userId: linePayload.sub,
+          name: linePayload.name,
+        })
+      } else {
+        console.log('[LINE Session] LINE token verified');
+      }
     } catch (error) {
       console.error('[LINE Session] LINE token verification failed:', error)
       return res.status(401).json({
