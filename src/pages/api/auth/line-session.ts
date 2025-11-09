@@ -89,7 +89,6 @@ export default async function handler(
       return res.status(401).json({
         success: false,
         error: 'Invalid or expired LINE token',
-        details: error instanceof Error ? error.message : 'Unknown error',
       })
     }
 
