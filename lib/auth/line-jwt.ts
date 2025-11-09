@@ -137,7 +137,7 @@ export function decodeLineIdToken(idToken: string): LineIdTokenPayload {
 
     // Decode payload (base64url)
     const payload = parts[1]
-    const decodedPayload = Buffer.from(payload, 'base64url').toString('utf-8')
+    const decodedPayload = base64UrlDecode(payload)
     const parsed = JSON.parse(decodedPayload) as LineIdTokenPayload
 
     // Basic validation
