@@ -155,7 +155,9 @@ export default async function handler(
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      ...(process.env.NODE_ENV !== 'production' && {
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
     })
   }
 }
