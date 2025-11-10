@@ -7,6 +7,7 @@ import {
   isLiffLoggedIn,
   isInLineClient,
   getLiffProfile,
+  getLiffIdToken,
   liffLogin,
   liffLogout,
   closeLiffWindow,
@@ -24,7 +25,9 @@ import type {
   LiffContext,
   LiffOS,
   LiffError,
+  LiffSession,
 } from '@/types/liff'
+import { createSupabaseSession, validateSessionToken, getSessionExpiration } from '@/lib/session/client'
 
 /**
  * React Hook for LIFF
@@ -42,6 +45,14 @@ export function useLiff(): UseLiffReturn {
   const [lineVersion, setLineVersion] = useState<string | null>(null)
   const [error, setError] = useState<LiffError | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Session state
+  const [session, setSession] = useState<LiffSession>({
+    sessionToken: null,
+    expiresAt: null,
+    isValid: false,
+    isLoading: false,
+  })
 
   // Initialize LIFF
   useEffect(() => {
@@ -163,12 +174,27 @@ export function useLiff(): UseLiffReturn {
     }
   }, [])
 
+  // Session management actions
+  const clearSession = useCallback(() => {
+    setSession({
+      sessionToken: null,
+      expiresAt: null,
+      isValid: false,
+      isLoading: false,
+    })
+
+    if (liffFeatures.enableDebugLogging) {
+      console.log('[useLiff] Session cleared')
+    }
+  }, [])
+
   // Logout action
   const logout = useCallback(() => {
     try {
       liffLogout()
       setIsLoggedIn(false)
       setProfile(null)
+      clearSession()
     } catch (err) {
       const liffError: LiffError = {
         name: 'LiffError',
@@ -179,7 +205,7 @@ export function useLiff(): UseLiffReturn {
       setError(liffError)
       throw liffError
     }
-  }, [])
+  }, [clearSession])
 
   // Close window action
   const closeWindow = useCallback(() => {
@@ -302,6 +328,113 @@ export function useLiff(): UseLiffReturn {
     return isLiffApiAvailable(apiName)
   }, [])
 
+  // Session management actions
+  const createSession = useCallback(async (): Promise<string | null> => {
+    try {
+      setSession(prev => ({ ...prev, isLoading: true }))
+      setError(null)
+
+      if (!isLiffLoggedIn()) {
+        throw new Error('User must be logged in to create a session')
+      }
+
+      // Get LINE ID token
+      const idToken = await getLiffIdToken()
+      if (!idToken) {
+        throw new Error('Failed to get LINE ID token - ensure "openid" scope is configured')
+      }
+
+      // Create session via API
+      const sessionResponse = await createSupabaseSession(idToken)
+
+      if (!sessionResponse.success || !sessionResponse.sessionToken) {
+        throw new Error(sessionResponse.error || 'Failed to create session')
+      }
+
+      // Update session state
+      setSession({
+        sessionToken: sessionResponse.sessionToken,
+        expiresAt: sessionResponse.expiresAt || null,
+        isValid: true,
+        isLoading: false,
+      })
+
+      if (liffFeatures.enableDebugLogging) {
+        console.log('[useLiff] Session created successfully')
+      }
+
+      return sessionResponse.sessionToken
+    } catch (err) {
+      const liffError: LiffError = {
+        name: 'LiffError',
+        message: err instanceof Error ? err.message : 'Session creation failed',
+        code: 'SESSION_ERROR',
+        details: err,
+      } as LiffError
+
+      setError(liffError)
+      setSession(prev => ({ ...prev, isLoading: false }))
+      throw liffError
+    }
+  }, [])
+
+  const refreshSession = useCallback(async (): Promise<string | null> => {
+    try {
+      setSession(prev => ({ ...prev, isLoading: true }))
+      setError(null)
+
+      // Clear current session
+      setSession({
+        sessionToken: null,
+        expiresAt: null,
+        isValid: false,
+        isLoading: false,
+      })
+
+      // Create new session
+      return await createSession()
+    } catch (err) {
+      setSession(prev => ({ ...prev, isLoading: false }))
+      throw err
+    }
+  }, [createSession])
+
+  const validateSession = useCallback((): boolean => {
+    if (!session.sessionToken) {
+      return false
+    }
+
+    // Check expiration if available
+    if (session.expiresAt) {
+      const expirationTime = new Date(session.expiresAt).getTime()
+      const currentTime = Date.now()
+      return expirationTime > currentTime
+    }
+
+    // Fallback to token validation (synchronous check)
+    try {
+      const parts = session.sessionToken.split('.')
+      if (parts.length !== 3) {
+        return false
+      }
+
+      const payload = parts[1]
+      // Add padding if needed
+      let base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
+      while (base64.length % 4) {
+        base64 += '='
+      }
+
+      const decodedPayload = JSON.parse(atob(base64))
+      const currentTime = Math.floor(Date.now() / 1000)
+
+      return decodedPayload.exp > currentTime
+    } catch (error) {
+      console.error('[useLiff] Failed to validate session token:', error)
+      return false
+    }
+  }, [session.sessionToken, session.expiresAt])
+
   return {
     // State
     liff: getLiff(),
@@ -316,6 +449,7 @@ export function useLiff(): UseLiffReturn {
     lineVersion,
     error,
     loading,
+    session,
     isApiAvailable,
 
     // Actions
@@ -328,5 +462,9 @@ export function useLiff(): UseLiffReturn {
     scanCode,
     getProfile,
     getFriendship,
+    createSession,
+    refreshSession,
+    validateSession,
+    clearSession,
   }
 }

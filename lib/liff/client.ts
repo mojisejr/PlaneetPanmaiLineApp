@@ -407,6 +407,40 @@ export const getLiffFriendship = async (): Promise<{
 }
 
 /**
+ * Get LINE ID token for session creation
+ * @returns Promise with ID token or null if not available
+ */
+export const getLiffIdToken = async (): Promise<string | null> => {
+  try {
+    if (!isLiffLoggedIn()) {
+      return null
+    }
+
+    // Try to get ID token (requires 'openid' scope in LIFF configuration)
+    if (liff.isApiAvailable('getDecodedIDToken')) {
+      const idToken = await liff.getDecodedIDToken()
+      if (idToken && typeof idToken === 'object' && 'raw' in idToken) {
+        return (idToken as any).raw
+      }
+    }
+
+    // Alternative: try getIDToken if available
+    if (liff.isApiAvailable('getIDToken')) {
+      const idToken = await liff.getIDToken()
+      return idToken
+    }
+
+    console.warn('[LIFF] ID token retrieval not available - ensure "openid" scope is configured in LIFF')
+    return null
+  } catch (error) {
+    if (liffFeatures.enableErrorTracking) {
+      console.error('[LIFF] Failed to get ID token:', error)
+    }
+    throw new LiffError('Failed to get LINE ID token', 'ID_TOKEN_ERROR', error)
+  }
+}
+
+/**
  * Check if API is available
  * @param apiName API name to check
  * @returns Whether API is available

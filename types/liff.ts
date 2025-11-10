@@ -61,6 +61,14 @@ export interface LiffInitResult {
   liff?: Liff
 }
 
+// LIFF Session Types
+export interface LiffSession {
+  sessionToken: string | null
+  expiresAt: string | null
+  isValid: boolean
+  isLoading: boolean
+}
+
 // LIFF Actions
 export interface LiffActions {
   login: (redirectUri?: string) => Promise<void>
@@ -72,6 +80,10 @@ export interface LiffActions {
   scanCode: () => Promise<{ value: string } | null>
   getProfile: () => Promise<LiffProfile>
   getFriendship: () => Promise<{ friendFlag: boolean }>
+  createSession: () => Promise<string | null>
+  refreshSession: () => Promise<string | null>
+  validateSession: () => boolean
+  clearSession: () => void
 }
 
 // LIFF Hook Return Type
@@ -79,6 +91,7 @@ export interface UseLiffReturn extends LiffState, LiffActions {
   liff: Liff | null
   error: LiffError | null
   loading: boolean
+  session: LiffSession
 }
 
 // Export Liff type from the SDK
