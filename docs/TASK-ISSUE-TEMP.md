@@ -50,12 +50,13 @@
 - **Integration Points**: [where this connects to existing code]
 
 ### 🏗️ TECHNICAL REQUIREMENTS
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript (strict mode enabled)
-- **Database**: Supabase (PostgreSQL)
-- **UI Library**: shadcn/ui + Tailwind CSS
-- **Authentication**: LINE LIFF v2 Native Auth
-- **Testing**: Jest + Testing Library
+- **Framework**: Next.js 14.2.15 with App Router
+- **Language**: TypeScript (strict mode)
+- **Database**: PostgreSQL via Supabase
+- **UI Library**: shadcn/ui + Tailwind CSS v3.4.16
+- **Authentication**: LINE LIFF + JWT bridge
+- **LINE Integration**: LINE Front-end Framework (LIFF) v2.27.2
+- **Testing**: Component tests (test setup required)
 
 ### 📁 FILES TO CREATE (EXACT LIST)
 ```
@@ -66,11 +67,11 @@ lib/[exact-path]/[service].ts
 
 ### 🔧 EXACT IMPLEMENTATION REQUIREMENTS
 - **No modifications to existing files** (unless specified)
-- **Complete TypeScript interfaces** for all data structures
+- **Complete type definitions/interfaces** for all data structures (per project language)
 - **Comprehensive error handling** with user-friendly messages
-- **Loading states** for all async operations
-- **Accessibility compliance** (WCAG 2.1 AA)
-- **Mobile-first responsive design** for LINE WebView
+- **Loading states** for all async operations (if applicable)
+- **Accessibility compliance** where relevant
+- **Mobile-first responsive design** when applicable
 
 ### 💾 DATABASE OPERATIONS (IF APPLICABLE)
 ```sql
@@ -91,24 +92,24 @@ ALTER POLICY ...;
 - **Thai Language Support**: Proper font loading and text handling
 
 ### 🧪 TESTING REQUIREMENTS
-- **Unit Tests**: All functions and utilities (100% coverage)
-- **Component Tests**: All React components using Testing Library
-- **Integration Tests**: API routes and database operations
-- **Manual Testing**: LINE WebView functionality verification
+- **Unit Tests**: All core functions and utilities (coverage targets set per project)
+- **Component Tests**: UI component tests (if applicable)
+- **Integration Tests**: API routes and database operations (if applicable)
+- **Manual Testing**: Any environment-specific manual checks (e.g., mobile webview)
 
 ### ✅ ACCEPTANCE CRITERIA (100% MANDATORY)
-- [ ] `npm run build` passes with **ZERO** errors or warnings
-- [ ] `npm run lint` passes with **ZERO** violations
-- [ ] `npx tsc --noEmit` passes (TypeScript compilation)
-- [ ] All tests pass (`npm test`) with **ZERO** failures
+- [ ] Build command passes successfully with zero errors/warnings (`[build command]`)
+- [ ] Lint command passes with zero violations (`[lint command]`)
+- [ ] Language/typecheck passes (e.g., TypeScript/other) (`[typecheck command]`)
+- [ ] All tests pass (`[test command]`) with zero failures
 - [ ] Single deliverable works end-to-end
 - [ ] No unintended side effects
-- [ ] Code follows project patterns exactly
+- [ ] Code follows project patterns and style guidelines
 
 ### 🔄 GIT WORKFLOW (MANDATORY)
 - **Branch Name**: `feature/task-[XXX]-[X]-[description]`
-- **Source Branch**: MUST branch from latest `staging`
-- **No Merge Conflicts**: Branch must be clean mergeable
+- **Source Branch**: MUST branch from latest `[source branch]` (e.g., `staging` or `main`, per project)
+- **No Merge Conflicts**: Branch must be clean and mergeable
 - **Commit Format**:
   ```
   feat: [single deliverable]
@@ -135,20 +136,20 @@ ALTER POLICY ...;
 **Follow exactly these steps:**
 
 1. **Create Feature Branch** (MANDATORY FIRST STEP):
-   ```bash
-   git checkout staging
-   git pull origin staging
-   git checkout -b feature/task-[XXX]-[X]-[description]
-   ```
+  ```bash
+  git checkout [source branch]
+  git pull origin [source branch]
+  git checkout -b feature/task-[XXX]-[X]-[description]
+  ```
 
 2. **Implementation**: Build the single deliverable exactly as specified
 
 3. **Validation** (MANDATORY BEFORE COMMIT):
-   ```bash
-   npm run build    # Must pass 100%
-   npm run lint     # Must pass 100%
-   npm test         # Must pass 100%
-   ```
+  ```bash
+  [build command]    # Must pass
+  [lint command]     # Must pass
+  [test command]     # Must pass
+  ```
 
 4. **Commit Changes**:
    ```bash
@@ -166,8 +167,8 @@ ALTER POLICY ...;
 - **No Task Dependencies**: This task must be executable independently
 - **Reference Materials**: [relevant documentation links]
 
-**Assign to**: [@human-executor | @copilot] (based on mode)
-**Labels**: `atomic`, `[specific-technology]`, `independent-execution`, `[manual|copilot]`
+**Assign to**: [manual assignment as needed]
+**Labels**: [no labels - clean issue creation]
 ```
 
 ---
@@ -246,26 +247,27 @@ ALTER POLICY ...;
 6. Create pull request with proper documentation
 
 ### 🏗️ TECHNICAL REQUIREMENTS
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript (strict mode enabled)
-- **Database**: Supabase (PostgreSQL)
-- **UI Library**: shadcn/ui + Tailwind CSS
-- **Authentication**: LINE LIFF v2 Native Auth
-- **Testing**: Jest + Testing Library
+- **Framework**: Next.js 14.2.15 with App Router
+- **Language**: TypeScript (strict mode)
+- **Database**: PostgreSQL via Supabase
+- **UI Library**: shadcn/ui + Tailwind CSS v3.4.16
+- **Authentication**: LINE LIFF + JWT bridge
+- **LINE Integration**: LINE Front-end Framework (LIFF) v2.27.2
+- **Testing**: Component tests (test setup required)
 
 ### 📁 FILES TO CREATE (EXACT LIST)
 ```
-lib/supabase/schema/members.sql
+lib/supabase/migrations/XXX_create_members.sql
 lib/supabase/types/members.ts
 ```
 
 ### 💾 DATABASE OPERATIONS (MANDATORY)
 ```sql
--- File: lib/supabase/schema/members.sql
+-- File: lib/supabase/migrations/XXX_create_members.sql
 CREATE TABLE IF NOT EXISTS members (
-  id SERIAL PRIMARY KEY,
-  line_user_id VARCHAR(255) UNIQUE NOT NULL,
-  display_name VARCHAR(255) NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  line_user_id TEXT UNIQUE NOT NULL,
+  display_name TEXT NOT NULL,
   registration_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   contact_info TEXT,
   is_active BOOLEAN DEFAULT true,
@@ -305,7 +307,7 @@ CREATE POLICY "Users can update own profile"
 ### ✅ ACCEPTANCE CRITERIA (100% MANDATORY)
 - [ ] `npm run build` passes with **ZERO** errors or warnings
 - [ ] `npm run lint` passes with **ZERO** violations
-- [ ] `npx tsc --noEmit` passes (TypeScript compilation)
+- [ ] `npm run type-check` passes (TypeScript compilation)
 - [ ] All tests pass (`npm test`) with **ZERO** failures
 - [ ] SQL script executes successfully in Supabase
 - [ ] TypeScript types compile without errors
@@ -315,8 +317,8 @@ CREATE POLICY "Users can update own profile"
 - **Context Issue**: #[ISSUE-008] (for reference only)
 - **No Task Dependencies**: This task must be executable independently
 
-**Assign to: @copilot**
-**Labels**: `atomic`, `database`, `supabase`, `independent-execution`, `copilot`
+**Assign to**: [manual assignment as needed]
+**Labels**: [no labels - clean issue creation]
 ```
 
 ### Example 2: React Component Creation (Manual Mode)
@@ -348,10 +350,11 @@ CREATE POLICY "Users can update own profile"
 7. Commit with proper message format and create pull request
 
 ### 🏗️ TECHNICAL REQUIREMENTS
-- **Framework**: Next.js 14 (App Router)
+- **Framework**: Next.js 14.2.15 (App Router)
 - **Language**: TypeScript (strict mode enabled)
-- **UI Library**: shadcn/ui + Tailwind CSS
-- **Testing**: Jest + Testing Library
+- **UI Library**: shadcn/ui + Tailwind CSS v3.4.16
+- **LINE Integration**: LINE LIFF v2.27.2
+- **Testing**: Component tests (test setup required)
 
 ### 📁 FILES TO CREATE (EXACT LIST)
 ```
@@ -376,7 +379,7 @@ components/ui/loading-spinner.test.tsx
 ### ✅ ACCEPTANCE CRITERIA (100% MANDATORY)
 - [ ] `npm run build` passes with **ZERO** errors or warnings
 - [ ] `npm run lint` passes with **ZERO** violations
-- [ ] `npx tsc --noEmit` passes (TypeScript compilation)
+- [ ] `npm run type-check` passes (TypeScript compilation)
 - [ ] All tests pass (`npm test`) with **ZERO** failures
 - [ ] Component renders correctly
 - [ ] Accessibility tests pass
@@ -386,8 +389,8 @@ components/ui/loading-spinner.test.tsx
 - **Context Issue**: #[ISSUE-008] (for reference only)
 - **No Task Dependencies**: This task must be executable independently
 
-**Assign to: [your-github-username]
-**Labels**: `atomic`, `component`, `ui`, `independent-execution`, `manual`
+**Assign to**: [manual assignment as needed]
+**Labels**: [no labels - clean issue creation]
 ```
 
 ---
@@ -474,15 +477,12 @@ components/ui/loading-spinner.test.tsx
 gh issue create \
   --title "[TASK-XXX-X] Atomic: [Single Deliverable]" \
   --body "$(cat docs/ISSUE-TEMP.md | sed -n '/## \[TASK-XXX-X\] Atomic:/,/```/p')" \
-  --assignee @copilot \
-  --label "atomic" \
-  --label "independent-execution"
-
+  
 # Monitor atomic task progress
-gh issue list --assignee @copilot --label "atomic" --state open
+gh issue list --state open
 
 # Review atomic task PR
-gh pr list --author @copilot --label "atomic"
+gh pr list
 ```
 
 ---
@@ -534,4 +534,4 @@ gh pr list --author @copilot --label "atomic"
 ---
 
 *Last Updated: Use `date +"%Y-%m-%d %H:%M:%S"` to get current timestamp*
-*Repository: PlaneetPanmaiLineApp*
+*Repository: [REPOSITORY_NAME]*

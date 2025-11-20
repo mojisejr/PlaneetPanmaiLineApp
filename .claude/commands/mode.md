@@ -1,66 +1,64 @@
-# Execution Mode Command
+# mode
 
-Manages the execution mode for task assignment and implementation.
+Set or show the execution mode for task assignment and implementation workflow.
 
 ## Usage
 
-```bash
-/mode manual     # Switch to MANUAL mode (human implementation)
-/mode copilot     # Switch to COPILOT mode (GitHub Copilot implementation)
-/mode status      # Show current execution mode
 ```
+/mode [manual|copilot|status]
+```
+
+## Commands
+
+- `manual` - Set mode to MANUAL (tasks assigned to human developer)
+- `copilot` - Set mode to COPILOT (tasks assigned to @copilot)
+- `status` - Show current execution mode
 
 ## Examples
 
 ```bash
-/mode manual
-/mode copilot
-/mode status
+/mode manual    # Set execution mode to manual
+/mode copilot   # Set execution mode to copilot
+/mode status    # Show current mode
 ```
 
-## Mode Behaviors
+## Mode-Specific Behavior
 
-### MANUAL Mode (Default)
-- **Task Assignment**: Tasks assigned to human developer
-- **Implementation**: /impl triggers manual implementation workflow
-- **Validation**: Human performs all validation and commits
-- **Branch Creation**: Human creates feature branches
-- **PR Creation**: Human creates pull requests using /pr
+### MANUAL Mode
+- `/plan` creates tasks assigned to human developer
+- `/impl` provides workflow guidance for human implementation
+- Human developer handles all implementation steps
+- Use `/pr` to create pull request after implementation
 
 ### COPILOT Mode
-- **Task Assignment**: Tasks assigned to @github-copilot
-- **Implementation**: /impl triggers copilot implementation workflow
-- **Validation**: GitHub Copilot performs all validation
-- **Branch Creation**: Copilot creates feature branches automatically
-- **PR Creation**: Copilot creates pull requests targeting staging
+- `/plan` creates tasks assigned to @copilot
+- `/impl` triggers automatic implementation by @copilot
+- Copilot handles complete workflow including PR creation
+- Includes all validation steps and quality checks
 
-## Mode Persistence
+## Implementation
 
-- Mode setting persists throughout the current session
-- Mode is stored in project configuration
-- Can be changed anytime without affecting existing tasks
-- Default mode is MANUAL when starting new session
+When this command is executed:
 
-## Mode-Specific Commands
+1. **Check mode file**: Read `.claude/current_mode` or default to "manual"
+2. **Set mode** (if specified): Write new mode to `.claude/current_mode`
+3. **Display current status**: Show mode and behavior description
+4. **Provide guidance**: Explain next steps based on current mode
 
-### Manual Mode Workflow
-```bash
-/mode manual     # Ensure in manual mode
-/plan > [task]   # Creates task for human
-/impl > [number] # Human implements task
-/pr > [feedback] # Human creates PR
-```
+## Files
 
-### Copilot Mode Workflow
-```bash
-/mode copilot    # Switch to copilot mode
-/plan > [task]   # Creates task for copilot
-/impl > [number] # Copilot implements task
-# Copilot creates PR automatically
-```
+- `.claude/current_mode` - Stores current execution mode
+- Default mode: "manual"
 
-## Related Commands
+## Integration
 
-- /plan - Creates tasks assigned based on current mode
-- /impl - Triggers implementation based on current mode
-- /fcs - Context management (mode-independent)
+This command integrates with:
+- `/plan` - Uses current mode to assign tasks
+- `/impl` - Triggers different behavior based on mode
+- Workflow system - Affects task assignment and implementation
+
+## Notes
+
+- Mode persists across Claude Code sessions
+- Changing mode affects only future tasks, not existing ones
+- Use `/mode status` to check current mode before planning tasks
