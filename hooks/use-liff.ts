@@ -24,11 +24,69 @@ import type {
   LiffContext,
   LiffOS,
   LiffError,
+  LineSession,
+  SessionState,
+  SessionActions,
 } from '@/types/liff'
 
 /**
- * React Hook for LIFF
- * Manages LIFF state and provides actions
+ * Session storage keys for persistence
+ */
+const SESSION_STORAGE_KEY = 'liff-session-data'
+const SESSION_EXPIRY_KEY = 'liff-session-expiry'
+
+/**
+ * Helper function to store session data
+ */
+function storeSessionData(session: LineSession) {
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session))
+    localStorage.setItem(SESSION_EXPIRY_KEY, session.expiresAt)
+  } catch (error) {
+    console.warn('[useLiff] Failed to store session data:', error)
+  }
+}
+
+/**
+ * Helper function to retrieve session data
+ */
+function retrieveSessionData(): LineSession | null {
+  try {
+    const stored = localStorage.getItem(SESSION_STORAGE_KEY)
+    const expiry = localStorage.getItem(SESSION_EXPIRY_KEY)
+
+    if (!stored || !expiry) return null
+
+    const session: LineSession = JSON.parse(stored)
+
+    // Check if session has expired
+    if (new Date() >= new Date(expiry)) {
+      clearSessionData()
+      return null
+    }
+
+    return session
+  } catch (error) {
+    console.warn('[useLiff] Failed to retrieve session data:', error)
+    return null
+  }
+}
+
+/**
+ * Helper function to clear session data
+ */
+function clearSessionData() {
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY)
+    localStorage.removeItem(SESSION_EXPIRY_KEY)
+  } catch (error) {
+    console.warn('[useLiff] Failed to clear session data:', error)
+  }
+}
+
+/**
+ * React Hook for LIFF with Session Management
+ * Manages LIFF state, session bridge integration, and provides actions
  */
 export function useLiff(): UseLiffReturn {
   const [isReady, setIsReady] = useState(false)
@@ -43,7 +101,12 @@ export function useLiff(): UseLiffReturn {
   const [error, setError] = useState<LiffError | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Initialize LIFF
+  // Session management state
+  const [session, setSession] = useState<LineSession | null>(null)
+  const [isSessionLoading, setIsSessionLoading] = useState(false)
+  const [sessionError, setSessionError] = useState<LiffError | null>(null)
+
+  // Initialize LIFF and session
   useEffect(() => {
     let isMounted = true
 
@@ -51,6 +114,7 @@ export function useLiff(): UseLiffReturn {
       try {
         setLoading(true)
         setError(null)
+        setSessionError(null)
 
         const result = await initializeLiff()
 
@@ -124,6 +188,27 @@ export function useLiff(): UseLiffReturn {
           }
         }
 
+        // Initialize session management
+        if (liff.isLoggedIn()) {
+          // Try to restore existing session from storage
+          const existingSession = retrieveSessionData()
+          if (existingSession) {
+            setSession(existingSession)
+            if (liffFeatures.enableDebugLogging) {
+              console.log('[useLiff] Existing session restored')
+            }
+          } else {
+            // Create new session automatically when logged in
+            if (isMounted) {
+              await createSessionInternal()
+            }
+          }
+        } else {
+          // Clear session if not logged in
+          setSession(null)
+          clearSessionData()
+        }
+
         setLoading(false)
       } catch (err) {
         if (isMounted) {
@@ -147,10 +232,78 @@ export function useLiff(): UseLiffReturn {
     }
   }, [])
 
+  /**
+   * Internal session creation function
+   */
+  const createSessionInternal = async (): Promise<void> => {
+    try {
+      setIsSessionLoading(true)
+      setSessionError(null)
+
+      const liff = getLiff()
+      if (!liff || !liff.isLoggedIn()) {
+        throw new Error('LIFF is not initialized or user is not logged in')
+      }
+
+      // Get LINE ID token from LIFF
+      const idToken = liff.getIDToken()
+      if (!idToken) {
+        throw new Error('Failed to get LINE ID token from LIFF')
+      }
+
+      // Call session bridge API
+      const response = await fetch('/api/auth/line-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lineIdToken: idToken,
+        }),
+      })
+
+      const sessionData = await response.json()
+
+      if (!response.ok) {
+        throw new Error(sessionData.error || 'Failed to create session')
+      }
+
+      if (!sessionData.success) {
+        throw new Error(sessionData.error || 'Session creation failed')
+      }
+
+      const newSession: LineSession = {
+        sessionToken: sessionData.sessionToken,
+        expiresAt: sessionData.expiresAt,
+      }
+
+      // Store session
+      setSession(newSession)
+      storeSessionData(newSession)
+
+      if (liffFeatures.enableDebugLogging) {
+        console.log('[useLiff] Session created successfully')
+      }
+    } catch (err) {
+      const sessionError: LiffError = {
+        name: 'SessionError',
+        message: err instanceof Error ? err.message : 'Session creation failed',
+        code: 'SESSION_CREATE_ERROR',
+        details: err,
+      }
+      setSessionError(sessionError)
+      throw sessionError
+    } finally {
+      setIsSessionLoading(false)
+    }
+  }
+
   // Login action
   const login = useCallback(async (redirectUri?: string) => {
     try {
       liffLogin(redirectUri)
+      // Note: Session will be created automatically in the initialization effect
+      // when LIFF becomes logged in
     } catch (err) {
       const liffError: LiffError = {
         name: 'LiffError',
@@ -169,6 +322,10 @@ export function useLiff(): UseLiffReturn {
       liffLogout()
       setIsLoggedIn(false)
       setProfile(null)
+      // Clear session on logout
+      setSession(null)
+      clearSessionData()
+      setSessionError(null)
     } catch (err) {
       const liffError: LiffError = {
         name: 'LiffError',
@@ -302,6 +459,26 @@ export function useLiff(): UseLiffReturn {
     return isLiffApiAvailable(apiName)
   }, [])
 
+  // Session management actions
+  const createSession = useCallback(async () => {
+    await createSessionInternal()
+  }, [])
+
+  const clearSession = useCallback(() => {
+    setSession(null)
+    clearSessionData()
+    setSessionError(null)
+  }, [])
+
+  const refreshSession = useCallback(async () => {
+    // Clear current session and create a new one
+    clearSessionData()
+    await createSessionInternal()
+  }, [])
+
+  // Computed session state
+  const isAuthenticated = !!session && isLoggedIn
+
   return {
     // State
     liff: getLiff(),
@@ -318,6 +495,12 @@ export function useLiff(): UseLiffReturn {
     loading,
     isApiAvailable,
 
+    // Session state
+    session,
+    isAuthenticated,
+    isSessionLoading,
+    sessionError,
+
     // Actions
     login,
     logout,
@@ -328,5 +511,10 @@ export function useLiff(): UseLiffReturn {
     scanCode,
     getProfile,
     getFriendship,
+
+    // Session actions
+    createSession,
+    clearSession,
+    refreshSession,
   }
 }

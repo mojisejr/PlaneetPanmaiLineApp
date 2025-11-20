@@ -79,6 +79,33 @@ export interface UseLiffReturn extends LiffState, LiffActions {
   liff: Liff | null
   error: LiffError | null
   loading: boolean
+  // Session management
+  session: LineSession | null
+  isAuthenticated: boolean
+  isSessionLoading: boolean
+  sessionError: LiffError | null
+  createSession: () => Promise<void>
+  clearSession: () => void
+  refreshSession: () => Promise<void>
+}
+
+// Session Management Types
+export interface LineSession {
+  sessionToken: string
+  expiresAt: string
+}
+
+export interface SessionState {
+  session: LineSession | null
+  isAuthenticated: boolean
+  isSessionLoading: boolean
+  sessionError: LiffError | null
+}
+
+export interface SessionActions {
+  createSession: () => Promise<void>
+  clearSession: () => void
+  refreshSession: () => Promise<void>
 }
 
 // Export Liff type from the SDK
